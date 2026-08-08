@@ -4,6 +4,7 @@ import com.bento.crm.common.context.TenantContext;
 import com.bento.crm.common.exception.ResourceNotFoundException;
 import com.bento.crm.common.model.UserRole;
 import com.bento.crm.identity.dto.CreateUserRequest;
+import com.bento.crm.identity.dto.UpdateUserRequest;
 import com.bento.crm.identity.dto.UserResponseDto;
 import com.bento.crm.identity.mapper.UserMapper;
 import com.bento.crm.identity.model.AppUser;
@@ -34,6 +35,7 @@ public class UserService {
                 .displayName(request.getDisplayName())
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .role(UserRole.valueOf(request.getRole() != null ? request.getRole() : "SALESPERSON"))
+                .teamId(request.getTeamId() != null && !request.getTeamId().isBlank() ? UUID.fromString(request.getTeamId()) : null)
                 .isActive(true)
                 .phone(request.getPhone())
                 .jobTitle(request.getJobTitle())
@@ -52,7 +54,7 @@ public class UserService {
     }
 
     @Transactional
-    public UserResponseDto updateUser(UUID userId, CreateUserRequest request) {
+    public UserResponseDto updateUser(UUID userId, UpdateUserRequest request) {
         AppUser user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
@@ -62,6 +64,10 @@ public class UserService {
         if (request.getLanguage() != null) {
             user.setLanguage(request.getLanguage());
         }
+        if (request.getRole() != null) {
+            user.setRole(UserRole.valueOf(request.getRole()));
+        }
+        user.setTeamId(request.getTeamId() != null && !request.getTeamId().isBlank() ? UUID.fromString(request.getTeamId()) : null);
 
         user = userRepository.save(user);
         return userMapper.toResponseDto(user);

@@ -2,6 +2,7 @@ package com.bento.crm.identity.controller;
 
 import com.bento.crm.common.dto.PageResponse;
 import com.bento.crm.identity.dto.CreateUserRequest;
+import com.bento.crm.identity.dto.UpdateUserRequest;
 import com.bento.crm.identity.dto.UserResponseDto;
 import com.bento.crm.identity.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -52,7 +53,7 @@ public class UserController {
     @PatchMapping("/{id}")
     @PreAuthorize("hasAuthority('USERS_WRITE')")
     @Operation(summary = "Update user", description = "Update user information")
-    public ResponseEntity<UserResponseDto> updateUser(@PathVariable UUID id, @Valid @RequestBody CreateUserRequest request) {
+    public ResponseEntity<UserResponseDto> updateUser(@PathVariable UUID id, @Valid @RequestBody UpdateUserRequest request) {
         UserResponseDto user = userService.updateUser(id, request);
         return ResponseEntity.ok(user);
     }
