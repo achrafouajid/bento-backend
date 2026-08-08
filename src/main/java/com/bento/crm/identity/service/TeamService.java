@@ -28,6 +28,9 @@ public class TeamService {
         Team team = Team.builder()
                 .name(request.getName())
                 .description(request.getDescription())
+                .department(request.getDepartment() != null ? Team.TeamDepartment.valueOf(request.getDepartment()) : null)
+                .leadUserId(request.getLeadUserId() != null && !request.getLeadUserId().isBlank() ? UUID.fromString(request.getLeadUserId()) : null)
+                .color(request.getColor())
                 .build();
 
         team.setOrganizationId(orgId);
@@ -53,6 +56,11 @@ public class TeamService {
 
         team.setName(request.getName());
         team.setDescription(request.getDescription());
+        if (request.getDepartment() != null) {
+            team.setDepartment(Team.TeamDepartment.valueOf(request.getDepartment()));
+        }
+        team.setLeadUserId(request.getLeadUserId() != null && !request.getLeadUserId().isBlank() ? UUID.fromString(request.getLeadUserId()) : null);
+        team.setColor(request.getColor());
 
         return teamRepository.save(team);
     }
