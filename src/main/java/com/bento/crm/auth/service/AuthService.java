@@ -111,7 +111,7 @@ public class AuthService {
 
     @Transactional
     public void logout(UUID userId) {
-        // Revoke all refresh tokens for this user
+        refreshTokenRepository.revokeAllForUser(userId, Instant.now());
         log.info("User {} logged out", userId);
     }
 

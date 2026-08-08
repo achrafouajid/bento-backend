@@ -2,10 +2,7 @@ package com.bento.crm.common.config;
 
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
-import io.github.bucket4j.Bucket4j;
 import io.github.bucket4j.Refill;
-import lombok.RequiredArgsConstructor;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
@@ -13,10 +10,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
-@RequiredArgsConstructor
 public class RateLimitConfig {
 
-    private final RedisTemplate<String, Object> redisTemplate;
     private final Map<String, Bucket> cache = new ConcurrentHashMap<>();
 
     public Bucket resolveBucket(String key) {
@@ -25,7 +20,7 @@ public class RateLimitConfig {
 
     private Bucket createNewBucket() {
         Bandwidth limit = Bandwidth.classic(100, Refill.intervally(100, Duration.ofMinutes(1)));
-        return Bucket4j.builder()
+        return Bucket.builder()
                 .addLimit(limit)
                 .build();
     }
@@ -34,7 +29,7 @@ public class RateLimitConfig {
         String key = "auth_rate_limit:" + ipAddress;
         Bandwidth limit = Bandwidth.classic(10, Refill.intervally(10, Duration.ofMinutes(1)));
         return cache.computeIfAbsent(key, k ->
-                Bucket4j.builder()
+                Bucket.builder()
                         .addLimit(limit)
                         .build()
         );
@@ -44,7 +39,7 @@ public class RateLimitConfig {
         String key = "signup_rate_limit:" + ipAddress;
         Bandwidth limit = Bandwidth.classic(5, Refill.intervally(5, Duration.ofHours(1)));
         return cache.computeIfAbsent(key, k ->
-                Bucket4j.builder()
+                Bucket.builder()
                         .addLimit(limit)
                         .build()
         );

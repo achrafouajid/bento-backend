@@ -1,6 +1,7 @@
 package com.bento.crm.organization.controller;
 
 import com.bento.crm.organization.dto.CreateOrganizationRequest;
+import com.bento.crm.organization.dto.UpdateOrganizationRequest;
 import com.bento.crm.organization.model.Organization;
 import com.bento.crm.organization.service.OrganizationService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -9,6 +10,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -24,5 +26,20 @@ public class OrganizationController {
     public ResponseEntity<Organization> createOrganization(@Valid @RequestBody CreateOrganizationRequest request) {
         Organization organization = organizationService.createOrganization(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(organization);
+    }
+
+    @GetMapping("/me")
+    @Operation(summary = "Get current organization", description = "Retrieve the organization for the authenticated caller's tenant")
+    public ResponseEntity<Organization> getCurrentOrganization() {
+        Organization organization = organizationService.getCurrentOrganization();
+        return ResponseEntity.ok(organization);
+    }
+
+    @PatchMapping("/me")
+    @PreAuthorize("hasAuthority('ADMIN_ACCESS')")
+    @Operation(summary = "Update current organization", description = "Update organization profile fields for the authenticated caller's tenant")
+    public ResponseEntity<Organization> updateCurrentOrganization(@Valid @RequestBody UpdateOrganizationRequest request) {
+        Organization organization = organizationService.updateCurrentOrganization(request);
+        return ResponseEntity.ok(organization);
     }
 }

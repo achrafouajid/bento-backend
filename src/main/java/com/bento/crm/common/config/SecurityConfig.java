@@ -18,13 +18,13 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity(prePostEnabled = false) // Disabled for development - allows public API access
+@EnableMethodSecurity(prePostEnabled = true)
 @RequiredArgsConstructor
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
     private final TenantFilterInterceptor tenantFilterInterceptor;
-    // private final RateLimitFilter rateLimitFilter; // Disabled: bucket4j not available
+    private final RateLimitFilter rateLimitFilter;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -35,25 +35,13 @@ public class SecurityConfig {
                                 "/auth/login", "/auth/refresh",
                                 "/organizations",
                                 "/actuator/health",
-                                "/swagger-ui.html", "/openapi/**", "/swagger-ui/**",
-                                "/users", "/users/**",
-                                "/teams", "/teams/**",
-                                "/groups", "/groups/**",
-                                "/partners", "/partners/**",
-                                "/deals", "/deals/**",
-                                "/proposals", "/proposals/**",
-                                "/tasks", "/tasks/**",
-                                "/tickets", "/tickets/**",
-                                "/invoices", "/invoices/**",
-                                "/purchase-orders", "/purchase-orders/**",
-                                "/campaigns", "/campaigns/**",
-                                "/automation-rules", "/automation-rules/**"
+                                "/swagger-ui.html", "/openapi/**", "/swagger-ui/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 .and()
-                // .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class) // Disabled: bucket4j not available
+                .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(tenantFilterInterceptor, JwtAuthFilter.class);
 

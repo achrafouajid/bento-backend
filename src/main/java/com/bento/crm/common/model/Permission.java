@@ -57,15 +57,25 @@ public enum Permission {
     CAMPAIGNS_WRITE("CAMPAIGNS_WRITE"),
     CAMPAIGNS_DELETE("CAMPAIGNS_DELETE"),
 
-    // Automation permissions
-    AUTOMATION_READ("AUTOMATION_READ"),
-    AUTOMATION_WRITE("AUTOMATION_WRITE"),
+    // Automation rule permissions
+    AUTOMATION_RULES_READ("AUTOMATION_RULES_READ"),
+    AUTOMATION_RULES_CREATE("AUTOMATION_RULES_CREATE"),
+    AUTOMATION_RULES_WRITE("AUTOMATION_RULES_WRITE"),
+    AUTOMATION_RULES_DELETE("AUTOMATION_RULES_DELETE"),
 
     // User & Team management
     USERS_READ("USERS_READ"),
     USERS_WRITE("USERS_WRITE"),
     TEAMS_READ("TEAMS_READ"),
     TEAMS_WRITE("TEAMS_WRITE"),
+    TEAMS_CREATE("TEAMS_CREATE"),
+    TEAMS_DELETE("TEAMS_DELETE"),
+
+    // Group permissions
+    GROUPS_READ("GROUPS_READ"),
+    GROUPS_CREATE("GROUPS_CREATE"),
+    GROUPS_WRITE("GROUPS_WRITE"),
+    GROUPS_DELETE("GROUPS_DELETE"),
 
     // Analytics
     ANALYTICS_READ("ANALYTICS_READ"),
@@ -86,9 +96,10 @@ public enum Permission {
                     TICKETS_READ, TICKETS_CREATE, TICKETS_WRITE, TICKETS_DELETE,
                     TASKS_READ, TASKS_CREATE, TASKS_WRITE, TASKS_DELETE,
                     CAMPAIGNS_READ, CAMPAIGNS_CREATE, CAMPAIGNS_WRITE, CAMPAIGNS_DELETE,
-                    AUTOMATION_READ, AUTOMATION_WRITE,
+                    AUTOMATION_RULES_READ, AUTOMATION_RULES_CREATE, AUTOMATION_RULES_WRITE, AUTOMATION_RULES_DELETE,
                     USERS_READ, USERS_WRITE,
-                    TEAMS_READ, TEAMS_WRITE,
+                    TEAMS_READ, TEAMS_WRITE, TEAMS_CREATE, TEAMS_DELETE,
+                    GROUPS_READ, GROUPS_CREATE, GROUPS_WRITE, GROUPS_DELETE,
                     ANALYTICS_READ,
                     ADMIN_ACCESS
             );
@@ -101,8 +112,9 @@ public enum Permission {
                     TICKETS_READ, TICKETS_WRITE,
                     TASKS_READ, TASKS_CREATE, TASKS_WRITE,
                     CAMPAIGNS_READ, CAMPAIGNS_CREATE, CAMPAIGNS_WRITE,
-                    AUTOMATION_READ,
-                    USERS_READ, TEAMS_READ,
+                    AUTOMATION_RULES_READ, AUTOMATION_RULES_CREATE, AUTOMATION_RULES_WRITE,
+                    USERS_READ, TEAMS_READ, TEAMS_WRITE,
+                    GROUPS_READ, GROUPS_CREATE, GROUPS_WRITE,
                     ANALYTICS_READ
             );
             case SALESPERSON -> Set.of(
@@ -110,17 +122,19 @@ public enum Permission {
                     DEALS_READ, DEALS_CREATE, DEALS_WRITE,
                     PROPOSALS_READ, PROPOSALS_CREATE, PROPOSALS_WRITE,
                     TASKS_READ, TASKS_CREATE, TASKS_WRITE,
+                    GROUPS_READ,
                     ANALYTICS_READ
             );
             case SUPPORT -> Set.of(
                     PARTNERS_READ, PARTNERS_WRITE,
                     TICKETS_READ, TICKETS_CREATE, TICKETS_WRITE,
                     TASKS_READ, TASKS_CREATE, TASKS_WRITE,
+                    GROUPS_READ,
                     ANALYTICS_READ
             );
             case VIEWER -> Set.of(
                     PARTNERS_READ, DEALS_READ, PROPOSALS_READ,
-                    TICKETS_READ, TASKS_READ, ANALYTICS_READ
+                    TICKETS_READ, TASKS_READ, GROUPS_READ, ANALYTICS_READ
             );
         };
     }

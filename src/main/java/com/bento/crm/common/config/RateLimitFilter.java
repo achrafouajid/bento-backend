@@ -32,17 +32,17 @@ public class RateLimitFilter extends OncePerRequestFilter {
             response.addHeader("X-Rate-Limit-Remaining", String.valueOf(probe.getRemainingTokens()));
             filterChain.doFilter(request, response);
         } else {
-            long waitForRefill = TimeUnit.NANOSECONDS.toSeconds(probe.getRoundingError());
+            long waitForRefill = TimeUnit.NANOSECONDS.toSeconds(probe.getNanosToWaitForRefill());
             response.addHeader("X-Rate-Limit-Retry-After-Seconds", String.valueOf(waitForRefill));
-            response.setStatus(HttpServletResponse.SC_TOO_MANY_REQUESTS);
+            response.setStatus(429);
             response.getWriter().write("Rate limit exceeded. Retry after " + waitForRefill + " seconds.");
         }
     }
 
     private Bucket selectBucket(String path, String clientIp) {
-        if (path.startsWith("/auth/login")) {
+        if (path.contains("/auth/login")) {
             return rateLimitConfig.resolveAuthBucket(clientIp);
-        } else if (path.startsWith("/organizations")) {
+        } else if (path.contains("/organizations")) {
             return rateLimitConfig.resolveSignupBucket(clientIp);
         } else {
             return rateLimitConfig.resolveBucket(clientIp);
@@ -60,6 +60,6 @@ public class RateLimitFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
-        return path.startsWith("/actuator") || path.startsWith("/swagger-ui") || path.startsWith("/openapi");
+        return path.contains("/actuator") || path.contains("/swagger-ui") || path.contains("/openapi");
     }
 }

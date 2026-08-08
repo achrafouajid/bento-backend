@@ -29,4 +29,7 @@ public interface AppUserRepository extends JpaRepository<AppUser, UUID> {
 
     @Query("SELECT u FROM AppUser u WHERE u.organizationId = :organizationId")
     Page<AppUser> findByOrganizationId(@Param("organizationId") UUID organizationId, Pageable pageable);
+
+    @Query("SELECT u FROM AppUser u WHERE u.organizationId = :organizationId AND u.id = :id")
+    Optional<AppUser> findByOrganizationIdAndId(@Param("organizationId") UUID organizationId, @Param("id") UUID id);
 }

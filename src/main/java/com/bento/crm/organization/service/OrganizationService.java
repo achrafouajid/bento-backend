@@ -1,10 +1,12 @@
 package com.bento.crm.organization.service;
 
 import com.bento.crm.common.context.TenantContext;
+import com.bento.crm.common.exception.ResourceNotFoundException;
 import com.bento.crm.common.model.UserRole;
 import com.bento.crm.identity.model.AppUser;
 import com.bento.crm.identity.repository.AppUserRepository;
 import com.bento.crm.organization.dto.CreateOrganizationRequest;
+import com.bento.crm.organization.dto.UpdateOrganizationRequest;
 import com.bento.crm.organization.model.Organization;
 import com.bento.crm.organization.repository.OrganizationRepository;
 import lombok.RequiredArgsConstructor;
@@ -54,6 +56,34 @@ public class OrganizationService {
         TenantContext.clear();
 
         log.info("Organization created: {} with admin user: {}", organization.getId(), request.getAdminEmail());
+        return organization;
+    }
+
+    public Organization getCurrentOrganization() {
+        UUID orgId = TenantContext.getCurrentOrganizationId();
+        return organizationRepository.findById(orgId)
+                .orElseThrow(() -> new ResourceNotFoundException("Organization not found"));
+    }
+
+    @Transactional
+    public Organization updateCurrentOrganization(UpdateOrganizationRequest request) {
+        Organization organization = getCurrentOrganization();
+
+        organization.setName(request.getName());
+        organization.setIndustry(request.getIndustry());
+        organization.setLogoUrl(request.getLogoUrl());
+        if (request.getTimezone() != null) {
+            organization.setTimezone(request.getTimezone());
+        }
+        if (request.getDefaultCurrency() != null) {
+            organization.setDefaultCurrency(request.getDefaultCurrency());
+        }
+        if (request.getFiscalYearStartMonth() != null) {
+            organization.setFiscalYearStartMonth(request.getFiscalYearStartMonth());
+        }
+
+        organization = organizationRepository.save(organization);
+        log.info("Organization updated: {}", organization.getId());
         return organization;
     }
 }

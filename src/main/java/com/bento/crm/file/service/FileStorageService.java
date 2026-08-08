@@ -10,6 +10,8 @@ public interface FileStorageService {
 
     StoredFile store(MultipartFile file, String ownerEntityType, UUID ownerEntityId);
 
+    StoredFile getMetadata(UUID fileId);
+
     Resource load(UUID fileId);
 
     void delete(UUID fileId);

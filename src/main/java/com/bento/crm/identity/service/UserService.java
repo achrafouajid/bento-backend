@@ -48,14 +48,16 @@ public class UserService {
     }
 
     public UserResponseDto getUserById(UUID userId) {
-        AppUser user = userRepository.findById(userId)
+        UUID orgId = TenantContext.getCurrentOrganizationId();
+        AppUser user = userRepository.findByOrganizationIdAndId(orgId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         return userMapper.toResponseDto(user);
     }
 
     @Transactional
     public UserResponseDto updateUser(UUID userId, UpdateUserRequest request) {
-        AppUser user = userRepository.findById(userId)
+        UUID orgId = TenantContext.getCurrentOrganizationId();
+        AppUser user = userRepository.findByOrganizationIdAndId(orgId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         user.setDisplayName(request.getDisplayName());
@@ -81,7 +83,8 @@ public class UserService {
 
     @Transactional
     public void deactivateUser(UUID userId) {
-        AppUser user = userRepository.findById(userId)
+        UUID orgId = TenantContext.getCurrentOrganizationId();
+        AppUser user = userRepository.findByOrganizationIdAndId(orgId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         long activeAdmins = userRepository.countActiveAdminsByOrganizationId(user.getOrganizationId());

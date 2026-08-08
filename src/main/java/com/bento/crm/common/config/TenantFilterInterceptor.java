@@ -45,25 +45,40 @@ public class TenantFilterInterceptor extends OncePerRequestFilter {
                         organizationId = UUID.fromString(orgId);
                     }
                 } catch (Exception e) {
-                    // Invalid token, will be handled by Spring Security
+                    // Invalid token: leave organizationId null so the request is rejected below,
+                    // unless the endpoint is public (auth/signup/health/docs), which carry no org claim.
                 }
             }
 
-            // Set default organization for development (no token provided)
             if (organizationId == null) {
-                organizationId = UUID.fromString("550e8400-e29b-41d4-a716-446655440000");
+                if (isPublicEndpoint(request)) {
+                    filterChain.doFilter(request, response);
+                    return;
+                }
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.setContentType("application/json");
+                response.getWriter().write("{\"error\":\"Missing or invalid organization context\"}");
+                return;
             }
 
-            if (organizationId != null) {
-                TenantContext.setCurrentOrganizationId(organizationId);
-                Session session = entityManager.unwrap(Session.class);
-                session.enableFilter("organizationFilter")
-                        .setParameter("organizationId", organizationId);
-            }
+            TenantContext.setCurrentOrganizationId(organizationId);
+            Session session = entityManager.unwrap(Session.class);
+            session.enableFilter("organizationFilter")
+                    .setParameter("organizationId", organizationId);
 
             filterChain.doFilter(request, response);
         } finally {
             TenantContext.clear();
         }
+    }
+
+    private boolean isPublicEndpoint(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        return path.endsWith("/auth/login")
+                || path.endsWith("/auth/refresh")
+                || path.endsWith("/organizations")
+                || path.contains("/actuator/health")
+                || path.contains("/swagger-ui")
+                || path.contains("/openapi");
     }
 }
