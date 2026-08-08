@@ -29,6 +29,10 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
+    web:
+      pageable:
+        default-page-size: 200
+        max-page-size: 1000
   jackson:
     serialization:
       write-dates-as-timestamps: false
