@@ -4,21 +4,37 @@ import com.bento.crm.common.context.TenantContext;
 import com.bento.crm.common.exception.ResourceNotFoundException;
 import com.bento.crm.identity.dto.CreateTeamRequest;
 import com.bento.crm.identity.model.CrmGroup;
+import com.bento.crm.identity.model.GroupMeeting;
+import com.bento.crm.identity.model.GroupMessage;
 import com.bento.crm.identity.repository.CrmGroupRepository;
+import com.bento.crm.identity.repository.GroupMeetingRepository;
+import com.bento.crm.identity.repository.GroupMessageRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
 public class CrmGroupService {
 
     private final CrmGroupRepository crmGroupRepository;
+    private final GroupMessageRepository groupMessageRepository;
+    private final GroupMeetingRepository groupMeetingRepository;
 
-    public CrmGroupService(CrmGroupRepository crmGroupRepository) {
+    public CrmGroupService(CrmGroupRepository crmGroupRepository,
+                            GroupMessageRepository groupMessageRepository,
+                            GroupMeetingRepository groupMeetingRepository) {
         this.crmGroupRepository = crmGroupRepository;
+        this.groupMessageRepository = groupMessageRepository;
+        this.groupMeetingRepository = groupMeetingRepository;
+    }
+
+    private static UUID getCurrentUserId() {
+        return UUID.fromString((String) SecurityContextHolder.getContext().getAuthentication().getPrincipal());
     }
 
     @Transactional
@@ -64,5 +80,51 @@ public class CrmGroupService {
                 .orElseThrow(() -> new ResourceNotFoundException("Team not found"));
 
         crmGroupRepository.delete(group);
+    }
+
+    public Page<GroupMessage> listMessages(UUID groupId, Pageable pageable) {
+        UUID orgId = TenantContext.getCurrentOrganizationId();
+        getTeam(groupId);
+        return groupMessageRepository.findByGroupId(orgId, groupId, pageable);
+    }
+
+    @Transactional
+    public GroupMessage createMessage(UUID groupId, GroupMessage message) {
+        UUID orgId = TenantContext.getCurrentOrganizationId();
+        getTeam(groupId);
+
+        UUID authorId = getCurrentUserId();
+        GroupMessage toSave = GroupMessage.builder()
+                .groupId(groupId)
+                .authorUserId(authorId)
+                .content(message.getContent())
+                .readByUserIds(List.of(authorId))
+                .build();
+        toSave.setOrganizationId(orgId);
+        return groupMessageRepository.save(toSave);
+    }
+
+    public Page<GroupMeeting> listMeetings(UUID groupId, Pageable pageable) {
+        UUID orgId = TenantContext.getCurrentOrganizationId();
+        getTeam(groupId);
+        return groupMeetingRepository.findByGroupId(orgId, groupId, pageable);
+    }
+
+    @Transactional
+    public GroupMeeting createMeeting(UUID groupId, GroupMeeting meeting) {
+        UUID orgId = TenantContext.getCurrentOrganizationId();
+        getTeam(groupId);
+
+        GroupMeeting toSave = GroupMeeting.builder()
+                .groupId(groupId)
+                .title(meeting.getTitle())
+                .description(meeting.getDescription())
+                .scheduledAt(meeting.getScheduledAt())
+                .createdByUserId(getCurrentUserId())
+                .attendeeUserIds(meeting.getAttendeeUserIds())
+                .meetingLink(meeting.getMeetingLink())
+                .build();
+        toSave.setOrganizationId(orgId);
+        return groupMeetingRepository.save(toSave);
     }
 }

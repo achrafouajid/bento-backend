@@ -72,32 +72,28 @@ public class GroupController {
     @GetMapping("/{groupId}/messages")
     @PreAuthorize("hasAuthority('GROUPS_READ')")
     @Operation(summary = "List group messages", description = "List all messages in a group")
-    public ResponseEntity<Page<GroupMessage>> getGroupMessages(@PathVariable UUID groupId, Pageable pageable) {
-        // TODO: Implement group messages retrieval
-        return ResponseEntity.ok().build();
+    public ResponseEntity<PageResponse<GroupMessage>> getGroupMessages(@PathVariable UUID groupId, Pageable pageable) {
+        return ResponseEntity.ok(PageResponse.fromPage(crmGroupService.listMessages(groupId, pageable)));
     }
 
     @PostMapping("/{groupId}/messages")
     @PreAuthorize("hasAuthority('GROUPS_WRITE')")
     @Operation(summary = "Create group message", description = "Post a message to a group")
     public ResponseEntity<GroupMessage> createGroupMessage(@PathVariable UUID groupId, @RequestBody GroupMessage message) {
-        // TODO: Implement group message creation
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+        return ResponseEntity.status(HttpStatus.CREATED).body(crmGroupService.createMessage(groupId, message));
     }
 
     @GetMapping("/{groupId}/meetings")
     @PreAuthorize("hasAuthority('GROUPS_READ')")
     @Operation(summary = "List group meetings", description = "List all meetings in a group")
-    public ResponseEntity<Page<GroupMeeting>> getGroupMeetings(@PathVariable UUID groupId, Pageable pageable) {
-        // TODO: Implement group meetings retrieval
-        return ResponseEntity.ok().build();
+    public ResponseEntity<PageResponse<GroupMeeting>> getGroupMeetings(@PathVariable UUID groupId, Pageable pageable) {
+        return ResponseEntity.ok(PageResponse.fromPage(crmGroupService.listMeetings(groupId, pageable)));
     }
 
     @PostMapping("/{groupId}/meetings")
     @PreAuthorize("hasAuthority('GROUPS_WRITE')")
     @Operation(summary = "Create group meeting", description = "Schedule a meeting for a group")
     public ResponseEntity<GroupMeeting> createGroupMeeting(@PathVariable UUID groupId, @RequestBody GroupMeeting meeting) {
-        // TODO: Implement group meeting creation
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+        return ResponseEntity.status(HttpStatus.CREATED).body(crmGroupService.createMeeting(groupId, meeting));
     }
 }

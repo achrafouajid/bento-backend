@@ -37,9 +37,6 @@ public class Ticket extends BaseTenantEntity {
     @Enumerated(EnumType.STRING)
     private Priority priority;
 
-    @Column(columnDefinition = "uuid")
-    private UUID ticketTypeId;
-
     private LocalDate deadline;
 
     @Column(columnDefinition = "text")
