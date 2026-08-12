@@ -1,6 +1,8 @@
 package com.bento.crm.task.controller;
 
 import com.bento.crm.common.dto.PageResponse;
+import com.bento.crm.task.dto.CreateTaskRequest;
+import com.bento.crm.task.dto.TaskResponse;
 import com.bento.crm.task.model.Task;
 import com.bento.crm.task.service.TaskService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -29,33 +31,34 @@ public class TaskController {
     @PostMapping
     @PreAuthorize("hasAuthority('TASKS_CREATE')")
     @Operation(summary = "Create task", description = "Create a new task")
-    public ResponseEntity<Task> createTask(@Valid @RequestBody Task task) {
-        Task created = taskService.createTask(task);
-        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    public ResponseEntity<TaskResponse> createTask(@Valid @RequestBody CreateTaskRequest request) {
+        Task created = taskService.createTask(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(TaskResponse.fromEntity(created));
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('TASKS_READ')")
     @Operation(summary = "Get task by ID", description = "Retrieve task details")
-    public ResponseEntity<Task> getTask(@PathVariable UUID id) {
+    public ResponseEntity<TaskResponse> getTask(@PathVariable UUID id) {
         Task task = taskService.getTask(id);
-        return ResponseEntity.ok(task);
+        return ResponseEntity.ok(TaskResponse.fromEntity(task));
     }
 
     @GetMapping
     @PreAuthorize("hasAuthority('TASKS_READ')")
     @Operation(summary = "List tasks", description = "List all tasks in the organization")
-    public ResponseEntity<PageResponse<Task>> listTasks(Pageable pageable) {
+    public ResponseEntity<PageResponse<TaskResponse>> listTasks(Pageable pageable) {
         Page<Task> page = taskService.listTasks(pageable);
-        return ResponseEntity.ok(PageResponse.fromPage(page));
+        Page<TaskResponse> dtoPage = page.map(TaskResponse::fromEntity);
+        return ResponseEntity.ok(PageResponse.fromPage(dtoPage));
     }
 
     @PatchMapping("/{id}")
     @PreAuthorize("hasAuthority('TASKS_WRITE')")
     @Operation(summary = "Update task", description = "Update task information")
-    public ResponseEntity<Task> updateTask(@PathVariable UUID id, @Valid @RequestBody Task updates) {
-        Task task = taskService.updateTask(id, updates);
-        return ResponseEntity.ok(task);
+    public ResponseEntity<TaskResponse> updateTask(@PathVariable UUID id, @Valid @RequestBody CreateTaskRequest request) {
+        Task task = taskService.updateTask(id, request);
+        return ResponseEntity.ok(TaskResponse.fromEntity(task));
     }
 
     @DeleteMapping("/{id}")

@@ -1,6 +1,8 @@
 package com.bento.crm.deal.controller;
 
 import com.bento.crm.common.dto.PageResponse;
+import com.bento.crm.deal.dto.CreateDealRequest;
+import com.bento.crm.deal.dto.DealResponse;
 import com.bento.crm.deal.model.Deal;
 import com.bento.crm.deal.service.DealService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -29,33 +31,34 @@ public class DealController {
     @PostMapping
     @PreAuthorize("hasAuthority('DEALS_CREATE')")
     @Operation(summary = "Create deal", description = "Create a new deal")
-    public ResponseEntity<Deal> createDeal(@Valid @RequestBody Deal deal) {
-        Deal created = dealService.createDeal(deal);
-        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    public ResponseEntity<DealResponse> createDeal(@Valid @RequestBody CreateDealRequest request) {
+        Deal created = dealService.createDeal(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(DealResponse.fromEntity(created));
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('DEALS_READ')")
     @Operation(summary = "Get deal by ID", description = "Retrieve deal details")
-    public ResponseEntity<Deal> getDeal(@PathVariable UUID id) {
+    public ResponseEntity<DealResponse> getDeal(@PathVariable UUID id) {
         Deal deal = dealService.getDeal(id);
-        return ResponseEntity.ok(deal);
+        return ResponseEntity.ok(DealResponse.fromEntity(deal));
     }
 
     @GetMapping
     @PreAuthorize("hasAuthority('DEALS_READ')")
     @Operation(summary = "List deals", description = "List all deals in the organization")
-    public ResponseEntity<PageResponse<Deal>> listDeals(Pageable pageable) {
+    public ResponseEntity<PageResponse<DealResponse>> listDeals(Pageable pageable) {
         Page<Deal> page = dealService.listDeals(pageable);
-        return ResponseEntity.ok(PageResponse.fromPage(page));
+        Page<DealResponse> dtoPage = page.map(DealResponse::fromEntity);
+        return ResponseEntity.ok(PageResponse.fromPage(dtoPage));
     }
 
     @PatchMapping("/{id}")
     @PreAuthorize("hasAuthority('DEALS_WRITE')")
     @Operation(summary = "Update deal", description = "Update deal information")
-    public ResponseEntity<Deal> updateDeal(@PathVariable UUID id, @Valid @RequestBody Deal updates) {
-        Deal deal = dealService.updateDeal(id, updates);
-        return ResponseEntity.ok(deal);
+    public ResponseEntity<DealResponse> updateDeal(@PathVariable UUID id, @Valid @RequestBody CreateDealRequest request) {
+        Deal deal = dealService.updateDeal(id, request);
+        return ResponseEntity.ok(DealResponse.fromEntity(deal));
     }
 
     @DeleteMapping("/{id}")

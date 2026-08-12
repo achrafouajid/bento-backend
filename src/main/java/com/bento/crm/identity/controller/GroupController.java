@@ -1,6 +1,8 @@
 package com.bento.crm.identity.controller;
 
 import com.bento.crm.common.dto.PageResponse;
+import com.bento.crm.identity.dto.CreateGroupMeetingRequest;
+import com.bento.crm.identity.dto.CreateGroupMessageRequest;
 import com.bento.crm.identity.dto.CreateTeamRequest;
 import com.bento.crm.identity.model.CrmGroup;
 import com.bento.crm.identity.model.GroupMessage;
@@ -79,8 +81,8 @@ public class GroupController {
     @PostMapping("/{groupId}/messages")
     @PreAuthorize("hasAuthority('GROUPS_WRITE')")
     @Operation(summary = "Create group message", description = "Post a message to a group")
-    public ResponseEntity<GroupMessage> createGroupMessage(@PathVariable UUID groupId, @RequestBody GroupMessage message) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(crmGroupService.createMessage(groupId, message));
+    public ResponseEntity<GroupMessage> createGroupMessage(@PathVariable UUID groupId, @Valid @RequestBody CreateGroupMessageRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(crmGroupService.createMessage(groupId, request));
     }
 
     @GetMapping("/{groupId}/meetings")
@@ -93,7 +95,7 @@ public class GroupController {
     @PostMapping("/{groupId}/meetings")
     @PreAuthorize("hasAuthority('GROUPS_WRITE')")
     @Operation(summary = "Create group meeting", description = "Schedule a meeting for a group")
-    public ResponseEntity<GroupMeeting> createGroupMeeting(@PathVariable UUID groupId, @RequestBody GroupMeeting meeting) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(crmGroupService.createMeeting(groupId, meeting));
+    public ResponseEntity<GroupMeeting> createGroupMeeting(@PathVariable UUID groupId, @Valid @RequestBody CreateGroupMeetingRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(crmGroupService.createMeeting(groupId, request));
     }
 }

@@ -2,6 +2,7 @@ package com.bento.crm.campaign.service;
 
 import com.bento.crm.common.context.TenantContext;
 import com.bento.crm.common.exception.ResourceNotFoundException;
+import com.bento.crm.campaign.dto.CreateCampaignRequest;
 import com.bento.crm.campaign.model.Campaign;
 import com.bento.crm.campaign.repository.CampaignRepository;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +20,9 @@ public class CampaignService {
     private final CampaignRepository campaignRepository;
 
     @Transactional
-    public Campaign createCampaign(Campaign campaign) {
+    public Campaign createCampaign(CreateCampaignRequest request) {
+        Campaign campaign = new Campaign();
+        applyRequest(campaign, request);
         campaign.setOrganizationId(TenantContext.getCurrentOrganizationId());
         return campaignRepository.save(campaign);
     }
@@ -36,12 +39,22 @@ public class CampaignService {
     }
 
     @Transactional
-    public Campaign updateCampaign(UUID id, Campaign updates) {
+    public Campaign updateCampaign(UUID id, CreateCampaignRequest request) {
         Campaign campaign = getCampaign(id);
-        campaign.setTitle(updates.getTitle());
-        campaign.setStatus(updates.getStatus());
-        campaign.setChannel(updates.getChannel());
+        applyRequest(campaign, request);
         return campaignRepository.save(campaign);
+    }
+
+    private void applyRequest(Campaign campaign, CreateCampaignRequest request) {
+        campaign.setTitle(request.getTitle());
+        campaign.setChannel(request.getChannel());
+        campaign.setStatus(request.getStatus());
+        campaign.setTemplateId(request.getTemplateId());
+        campaign.setTargetTagId(request.getTargetTagId());
+        campaign.setTargetFilter(request.getTargetFilter());
+        campaign.setScheduledAt(request.getScheduledAt());
+        campaign.setSentCount(request.getSentCount());
+        campaign.setMetrics(request.getMetrics());
     }
 
     @Transactional

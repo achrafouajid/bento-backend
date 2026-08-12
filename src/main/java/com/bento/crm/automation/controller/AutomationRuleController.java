@@ -1,6 +1,8 @@
 package com.bento.crm.automation.controller;
 
 import com.bento.crm.common.dto.PageResponse;
+import com.bento.crm.automation.dto.CreateAutomationRuleRequest;
+import com.bento.crm.automation.dto.AutomationRuleResponse;
 import com.bento.crm.automation.model.AutomationRule;
 import com.bento.crm.automation.service.AutomationRuleService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -29,9 +31,9 @@ public class AutomationRuleController {
     @PostMapping
     @PreAuthorize("hasAuthority('AUTOMATION_RULES_CREATE')")
     @Operation(summary = "Create automation rule", description = "Create a new automation rule")
-    public ResponseEntity<AutomationRule> createAutomationRule(@Valid @RequestBody AutomationRule rule) {
-        AutomationRule created = automationRuleService.createAutomationRule(rule);
-        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    public ResponseEntity<AutomationRuleResponse> createAutomationRule(@Valid @RequestBody CreateAutomationRuleRequest request) {
+        AutomationRule created = automationRuleService.createAutomationRule(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(AutomationRuleResponse.fromEntity(created));
     }
 
     @GetMapping("/{id}")
@@ -53,8 +55,8 @@ public class AutomationRuleController {
     @PatchMapping("/{id}")
     @PreAuthorize("hasAuthority('AUTOMATION_RULES_WRITE')")
     @Operation(summary = "Update automation rule", description = "Update automation rule information")
-    public ResponseEntity<AutomationRule> updateAutomationRule(@PathVariable UUID id, @Valid @RequestBody AutomationRule updates) {
-        AutomationRule rule = automationRuleService.updateAutomationRule(id, updates);
+    public ResponseEntity<AutomationRule> updateAutomationRule(@PathVariable UUID id, @Valid @RequestBody CreateAutomationRuleRequest request) {
+        AutomationRule rule = automationRuleService.updateAutomationRule(id, request);
         return ResponseEntity.ok(rule);
     }
 

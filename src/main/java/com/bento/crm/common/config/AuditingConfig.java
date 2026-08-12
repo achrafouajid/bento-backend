@@ -17,9 +17,10 @@ public class AuditingConfig {
     public AuditorAware<UUID> auditorAware() {
         return () -> {
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            if (auth != null && auth.isAuthenticated() && auth.getPrincipal() instanceof org.springframework.security.core.userdetails.UserDetails) {
+            if (auth != null && auth.isAuthenticated() && auth.getPrincipal() instanceof String principal
+                    && !"anonymousUser".equals(principal)) {
                 try {
-                    return Optional.of(UUID.fromString(auth.getName()));
+                    return Optional.of(UUID.fromString(principal));
                 } catch (IllegalArgumentException e) {
                     return Optional.empty();
                 }

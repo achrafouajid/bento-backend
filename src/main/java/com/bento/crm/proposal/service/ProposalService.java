@@ -2,6 +2,7 @@ package com.bento.crm.proposal.service;
 
 import com.bento.crm.common.context.TenantContext;
 import com.bento.crm.common.exception.ResourceNotFoundException;
+import com.bento.crm.proposal.dto.CreateProposalRequest;
 import com.bento.crm.proposal.model.Proposal;
 import com.bento.crm.proposal.repository.ProposalRepository;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +20,9 @@ public class ProposalService {
     private final ProposalRepository proposalRepository;
 
     @Transactional
-    public Proposal createProposal(Proposal proposal) {
+    public Proposal createProposal(CreateProposalRequest request) {
+        Proposal proposal = new Proposal();
+        applyRequest(proposal, request);
         proposal.setOrganizationId(TenantContext.getCurrentOrganizationId());
         return proposalRepository.save(proposal);
     }
@@ -36,12 +39,27 @@ public class ProposalService {
     }
 
     @Transactional
-    public Proposal updateProposal(UUID id, Proposal updates) {
+    public Proposal updateProposal(UUID id, CreateProposalRequest request) {
         Proposal proposal = getProposal(id);
-        proposal.setTitle(updates.getTitle());
-        proposal.setStatus(updates.getStatus());
-        proposal.setOpportunityValue(updates.getOpportunityValue());
+        applyRequest(proposal, request);
         return proposalRepository.save(proposal);
+    }
+
+    private void applyRequest(Proposal proposal, CreateProposalRequest request) {
+        proposal.setPartnerId(request.getPartnerId());
+        proposal.setTemplateId(request.getTemplateId());
+        proposal.setTitle(request.getTitle());
+        proposal.setStatus(request.getStatus());
+        proposal.setDeliveryMethod(request.getDeliveryMethod());
+        proposal.setOpportunityValue(request.getOpportunityValue());
+        proposal.setClosingProbability(request.getClosingProbability());
+        proposal.setExpectedClosingDate(request.getExpectedClosingDate());
+        proposal.setCompetitors(request.getCompetitors());
+        proposal.setConfirmationMethod(request.getConfirmationMethod());
+        proposal.setConfirmationAttachmentFileId(request.getConfirmationAttachmentFileId());
+        proposal.setConfirmationNote(request.getConfirmationNote());
+        proposal.setConfirmedAt(request.getConfirmedAt());
+        proposal.setSentAt(request.getSentAt());
     }
 
     @Transactional

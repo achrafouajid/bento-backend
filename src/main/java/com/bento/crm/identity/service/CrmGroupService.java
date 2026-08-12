@@ -2,6 +2,8 @@ package com.bento.crm.identity.service;
 
 import com.bento.crm.common.context.TenantContext;
 import com.bento.crm.common.exception.ResourceNotFoundException;
+import com.bento.crm.identity.dto.CreateGroupMeetingRequest;
+import com.bento.crm.identity.dto.CreateGroupMessageRequest;
 import com.bento.crm.identity.dto.CreateTeamRequest;
 import com.bento.crm.identity.model.CrmGroup;
 import com.bento.crm.identity.model.GroupMeeting;
@@ -89,7 +91,7 @@ public class CrmGroupService {
     }
 
     @Transactional
-    public GroupMessage createMessage(UUID groupId, GroupMessage message) {
+    public GroupMessage createMessage(UUID groupId, CreateGroupMessageRequest request) {
         UUID orgId = TenantContext.getCurrentOrganizationId();
         getTeam(groupId);
 
@@ -97,7 +99,7 @@ public class CrmGroupService {
         GroupMessage toSave = GroupMessage.builder()
                 .groupId(groupId)
                 .authorUserId(authorId)
-                .content(message.getContent())
+                .content(request.getContent())
                 .readByUserIds(List.of(authorId))
                 .build();
         toSave.setOrganizationId(orgId);
@@ -111,18 +113,18 @@ public class CrmGroupService {
     }
 
     @Transactional
-    public GroupMeeting createMeeting(UUID groupId, GroupMeeting meeting) {
+    public GroupMeeting createMeeting(UUID groupId, CreateGroupMeetingRequest request) {
         UUID orgId = TenantContext.getCurrentOrganizationId();
         getTeam(groupId);
 
         GroupMeeting toSave = GroupMeeting.builder()
                 .groupId(groupId)
-                .title(meeting.getTitle())
-                .description(meeting.getDescription())
-                .scheduledAt(meeting.getScheduledAt())
+                .title(request.getTitle())
+                .description(request.getDescription())
+                .scheduledAt(request.getScheduledAt())
                 .createdByUserId(getCurrentUserId())
-                .attendeeUserIds(meeting.getAttendeeUserIds())
-                .meetingLink(meeting.getMeetingLink())
+                .attendeeUserIds(request.getAttendeeUserIds())
+                .meetingLink(request.getMeetingLink())
                 .build();
         toSave.setOrganizationId(orgId);
         return groupMeetingRepository.save(toSave);

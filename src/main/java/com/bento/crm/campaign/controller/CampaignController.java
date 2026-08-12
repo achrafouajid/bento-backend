@@ -1,6 +1,8 @@
 package com.bento.crm.campaign.controller;
 
 import com.bento.crm.common.dto.PageResponse;
+import com.bento.crm.campaign.dto.CreateCampaignRequest;
+import com.bento.crm.campaign.dto.CampaignResponse;
 import com.bento.crm.campaign.model.Campaign;
 import com.bento.crm.campaign.service.CampaignService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -29,33 +31,34 @@ public class CampaignController {
     @PostMapping
     @PreAuthorize("hasAuthority('CAMPAIGNS_CREATE')")
     @Operation(summary = "Create campaign", description = "Create a new campaign")
-    public ResponseEntity<Campaign> createCampaign(@Valid @RequestBody Campaign campaign) {
-        Campaign created = campaignService.createCampaign(campaign);
-        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    public ResponseEntity<CampaignResponse> createCampaign(@Valid @RequestBody CreateCampaignRequest request) {
+        Campaign created = campaignService.createCampaign(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(CampaignResponse.fromEntity(created));
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('CAMPAIGNS_READ')")
     @Operation(summary = "Get campaign by ID", description = "Retrieve campaign details")
-    public ResponseEntity<Campaign> getCampaign(@PathVariable UUID id) {
+    public ResponseEntity<CampaignResponse> getCampaign(@PathVariable UUID id) {
         Campaign campaign = campaignService.getCampaign(id);
-        return ResponseEntity.ok(campaign);
+        return ResponseEntity.ok(CampaignResponse.fromEntity(campaign));
     }
 
     @GetMapping
     @PreAuthorize("hasAuthority('CAMPAIGNS_READ')")
     @Operation(summary = "List campaigns", description = "List all campaigns in the organization")
-    public ResponseEntity<PageResponse<Campaign>> listCampaigns(Pageable pageable) {
+    public ResponseEntity<PageResponse<CampaignResponse>> listCampaigns(Pageable pageable) {
         Page<Campaign> page = campaignService.listCampaigns(pageable);
-        return ResponseEntity.ok(PageResponse.fromPage(page));
+        Page<CampaignResponse> dtoPage = page.map(CampaignResponse::fromEntity);
+        return ResponseEntity.ok(PageResponse.fromPage(dtoPage));
     }
 
     @PatchMapping("/{id}")
     @PreAuthorize("hasAuthority('CAMPAIGNS_WRITE')")
     @Operation(summary = "Update campaign", description = "Update campaign information")
-    public ResponseEntity<Campaign> updateCampaign(@PathVariable UUID id, @Valid @RequestBody Campaign updates) {
-        Campaign campaign = campaignService.updateCampaign(id, updates);
-        return ResponseEntity.ok(campaign);
+    public ResponseEntity<CampaignResponse> updateCampaign(@PathVariable UUID id, @Valid @RequestBody CreateCampaignRequest request) {
+        Campaign campaign = campaignService.updateCampaign(id, request);
+        return ResponseEntity.ok(CampaignResponse.fromEntity(campaign));
     }
 
     @DeleteMapping("/{id}")

@@ -2,6 +2,7 @@ package com.bento.crm.automation.service;
 
 import com.bento.crm.common.context.TenantContext;
 import com.bento.crm.common.exception.ResourceNotFoundException;
+import com.bento.crm.automation.dto.CreateAutomationRuleRequest;
 import com.bento.crm.automation.model.AutomationRule;
 import com.bento.crm.automation.repository.AutomationRuleRepository;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +20,9 @@ public class AutomationRuleService {
     private final AutomationRuleRepository automationRuleRepository;
 
     @Transactional
-    public AutomationRule createAutomationRule(AutomationRule rule) {
+    public AutomationRule createAutomationRule(CreateAutomationRuleRequest request) {
+        AutomationRule rule = new AutomationRule();
+        applyRequest(rule, request);
         rule.setOrganizationId(TenantContext.getCurrentOrganizationId());
         return automationRuleRepository.save(rule);
     }
@@ -36,12 +39,22 @@ public class AutomationRuleService {
     }
 
     @Transactional
-    public AutomationRule updateAutomationRule(UUID id, AutomationRule updates) {
+    public AutomationRule updateAutomationRule(UUID id, CreateAutomationRuleRequest request) {
         AutomationRule rule = getAutomationRule(id);
-        rule.setName(updates.getName());
-        rule.setDescription(updates.getDescription());
-        rule.setIsActive(updates.getIsActive());
+        applyRequest(rule, request);
         return automationRuleRepository.save(rule);
+    }
+
+    private void applyRequest(AutomationRule rule, CreateAutomationRuleRequest request) {
+        rule.setName(request.getName());
+        rule.setDescription(request.getDescription());
+        rule.setIsActive(request.getIsActive());
+        rule.setTrigger(request.getTrigger());
+        rule.setConditionGroups(request.getConditionGroups());
+        rule.setActions(request.getActions());
+        rule.setPriority(request.getPriority());
+        rule.setStopOnMatch(request.getStopOnMatch());
+        rule.setVersion(request.getVersion());
     }
 
     @Transactional

@@ -2,6 +2,7 @@ package com.bento.crm.purchaseorder.service;
 
 import com.bento.crm.common.context.TenantContext;
 import com.bento.crm.common.exception.ResourceNotFoundException;
+import com.bento.crm.purchaseorder.dto.CreatePurchaseOrderRequest;
 import com.bento.crm.purchaseorder.model.PurchaseOrder;
 import com.bento.crm.purchaseorder.repository.PurchaseOrderRepository;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +20,9 @@ public class PurchaseOrderService {
     private final PurchaseOrderRepository purchaseOrderRepository;
 
     @Transactional
-    public PurchaseOrder createPurchaseOrder(PurchaseOrder po) {
+    public PurchaseOrder createPurchaseOrder(CreatePurchaseOrderRequest request) {
+        PurchaseOrder po = new PurchaseOrder();
+        applyRequest(po, request);
         po.setOrganizationId(TenantContext.getCurrentOrganizationId());
         return purchaseOrderRepository.save(po);
     }
@@ -36,10 +39,18 @@ public class PurchaseOrderService {
     }
 
     @Transactional
-    public PurchaseOrder updatePurchaseOrder(UUID id, PurchaseOrder updates) {
+    public PurchaseOrder updatePurchaseOrder(UUID id, CreatePurchaseOrderRequest request) {
         PurchaseOrder po = getPurchaseOrder(id);
-        po.setStatus(updates.getStatus());
+        applyRequest(po, request);
         return purchaseOrderRepository.save(po);
+    }
+
+    private void applyRequest(PurchaseOrder po, CreatePurchaseOrderRequest request) {
+        po.setDealId(request.getDealId());
+        po.setVendorPartnerId(request.getVendorPartnerId());
+        po.setStatus(request.getStatus());
+        po.setDeliveryDate(request.getDeliveryDate());
+        po.setSentVia(request.getSentVia());
     }
 
     @Transactional

@@ -2,6 +2,7 @@ package com.bento.crm.ticket.service;
 
 import com.bento.crm.common.context.TenantContext;
 import com.bento.crm.common.exception.ResourceNotFoundException;
+import com.bento.crm.ticket.dto.CreateTicketRequest;
 import com.bento.crm.ticket.model.Ticket;
 import com.bento.crm.ticket.repository.TicketRepository;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +20,9 @@ public class TicketService {
     private final TicketRepository ticketRepository;
 
     @Transactional
-    public Ticket createTicket(Ticket ticket) {
+    public Ticket createTicket(CreateTicketRequest request) {
+        Ticket ticket = new Ticket();
+        applyRequest(ticket, request);
         ticket.setOrganizationId(TenantContext.getCurrentOrganizationId());
         return ticketRepository.save(ticket);
     }
@@ -36,13 +39,21 @@ public class TicketService {
     }
 
     @Transactional
-    public Ticket updateTicket(UUID id, Ticket updates) {
+    public Ticket updateTicket(UUID id, CreateTicketRequest request) {
         Ticket ticket = getTicket(id);
-        ticket.setTitle(updates.getTitle());
-        ticket.setStatus(updates.getStatus());
-        ticket.setPriority(updates.getPriority());
-        ticket.setAssignedToUserId(updates.getAssignedToUserId());
+        applyRequest(ticket, request);
         return ticketRepository.save(ticket);
+    }
+
+    private void applyRequest(Ticket ticket, CreateTicketRequest request) {
+        ticket.setTitle(request.getTitle());
+        ticket.setDescription(request.getDescription());
+        ticket.setPartnerId(request.getPartnerId());
+        ticket.setAssignedToUserId(request.getAssignedToUserId());
+        ticket.setStatus(request.getStatus());
+        ticket.setPriority(request.getPriority());
+        ticket.setDeadline(request.getDeadline());
+        ticket.setResolution(request.getResolution());
     }
 
     @Transactional

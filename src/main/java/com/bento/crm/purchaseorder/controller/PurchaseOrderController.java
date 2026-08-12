@@ -1,6 +1,8 @@
 package com.bento.crm.purchaseorder.controller;
 
 import com.bento.crm.common.dto.PageResponse;
+import com.bento.crm.purchaseorder.dto.CreatePurchaseOrderRequest;
+import com.bento.crm.purchaseorder.dto.PurchaseOrderResponse;
 import com.bento.crm.purchaseorder.model.PurchaseOrder;
 import com.bento.crm.purchaseorder.service.PurchaseOrderService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -29,33 +31,34 @@ public class PurchaseOrderController {
     @PostMapping
     @PreAuthorize("hasAuthority('PURCHASE_ORDERS_CREATE')")
     @Operation(summary = "Create purchase order", description = "Create a new purchase order")
-    public ResponseEntity<PurchaseOrder> createPurchaseOrder(@Valid @RequestBody PurchaseOrder po) {
-        PurchaseOrder created = purchaseOrderService.createPurchaseOrder(po);
-        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    public ResponseEntity<PurchaseOrderResponse> createPurchaseOrder(@Valid @RequestBody CreatePurchaseOrderRequest request) {
+        PurchaseOrder created = purchaseOrderService.createPurchaseOrder(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(PurchaseOrderResponse.fromEntity(created));
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('PURCHASE_ORDERS_READ')")
     @Operation(summary = "Get purchase order by ID", description = "Retrieve purchase order details")
-    public ResponseEntity<PurchaseOrder> getPurchaseOrder(@PathVariable UUID id) {
+    public ResponseEntity<PurchaseOrderResponse> getPurchaseOrder(@PathVariable UUID id) {
         PurchaseOrder po = purchaseOrderService.getPurchaseOrder(id);
-        return ResponseEntity.ok(po);
+        return ResponseEntity.ok(PurchaseOrderResponse.fromEntity(po));
     }
 
     @GetMapping
     @PreAuthorize("hasAuthority('PURCHASE_ORDERS_READ')")
     @Operation(summary = "List purchase orders", description = "List all purchase orders in the organization")
-    public ResponseEntity<PageResponse<PurchaseOrder>> listPurchaseOrders(Pageable pageable) {
+    public ResponseEntity<PageResponse<PurchaseOrderResponse>> listPurchaseOrders(Pageable pageable) {
         Page<PurchaseOrder> page = purchaseOrderService.listPurchaseOrders(pageable);
-        return ResponseEntity.ok(PageResponse.fromPage(page));
+        Page<PurchaseOrderResponse> dtoPage = page.map(PurchaseOrderResponse::fromEntity);
+        return ResponseEntity.ok(PageResponse.fromPage(dtoPage));
     }
 
     @PatchMapping("/{id}")
     @PreAuthorize("hasAuthority('PURCHASE_ORDERS_WRITE')")
     @Operation(summary = "Update purchase order", description = "Update purchase order information")
-    public ResponseEntity<PurchaseOrder> updatePurchaseOrder(@PathVariable UUID id, @Valid @RequestBody PurchaseOrder updates) {
-        PurchaseOrder po = purchaseOrderService.updatePurchaseOrder(id, updates);
-        return ResponseEntity.ok(po);
+    public ResponseEntity<PurchaseOrderResponse> updatePurchaseOrder(@PathVariable UUID id, @Valid @RequestBody CreatePurchaseOrderRequest request) {
+        PurchaseOrder po = purchaseOrderService.updatePurchaseOrder(id, request);
+        return ResponseEntity.ok(PurchaseOrderResponse.fromEntity(po));
     }
 
     @DeleteMapping("/{id}")

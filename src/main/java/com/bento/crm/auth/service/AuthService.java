@@ -2,6 +2,7 @@ package com.bento.crm.auth.service;
 
 import com.bento.crm.auth.dto.LoginRequest;
 import com.bento.crm.auth.dto.LoginResponse;
+import com.bento.crm.common.exception.AuthenticationFailedException;
 import com.bento.crm.common.exception.ResourceNotFoundException;
 import com.bento.crm.common.model.UserRole;
 import com.bento.crm.identity.dto.UserResponseDto;
@@ -42,14 +43,14 @@ public class AuthService {
         AppUser user = users.stream()
                 .filter(u -> u.getEmail().equalsIgnoreCase(email))
                 .findFirst()
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                .orElseThrow(() -> new AuthenticationFailedException("Invalid credentials"));
 
         if (!user.getIsActive()) {
-            throw new IllegalStateException("User account is inactive");
+            throw new AuthenticationFailedException("User account is inactive");
         }
 
         if (!passwordEncoder.matches(password, user.getPasswordHash())) {
-            throw new IllegalArgumentException("Invalid credentials");
+            throw new AuthenticationFailedException("Invalid credentials");
         }
 
         user.setLastActiveAt(Instant.now());
@@ -80,7 +81,7 @@ public class AuthService {
     public LoginResponse refresh(String refreshTokenValue) {
         String tokenHash = hashToken(refreshTokenValue);
         RefreshToken refreshToken = refreshTokenRepository.findValidToken(tokenHash, Instant.now())
-                .orElseThrow(() -> new IllegalArgumentException("Invalid or expired refresh token"));
+                .orElseThrow(() -> new AuthenticationFailedException("Invalid or expired refresh token"));
 
         AppUser user = userRepository.findById(refreshToken.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));

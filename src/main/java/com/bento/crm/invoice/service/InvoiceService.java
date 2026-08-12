@@ -2,6 +2,7 @@ package com.bento.crm.invoice.service;
 
 import com.bento.crm.common.context.TenantContext;
 import com.bento.crm.common.exception.ResourceNotFoundException;
+import com.bento.crm.invoice.dto.CreateInvoiceRequest;
 import com.bento.crm.invoice.model.Invoice;
 import com.bento.crm.invoice.repository.InvoiceRepository;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +20,9 @@ public class InvoiceService {
     private final InvoiceRepository invoiceRepository;
 
     @Transactional
-    public Invoice createInvoice(Invoice invoice) {
+    public Invoice createInvoice(CreateInvoiceRequest request) {
+        Invoice invoice = new Invoice();
+        applyRequest(invoice, request);
         invoice.setOrganizationId(TenantContext.getCurrentOrganizationId());
         return invoiceRepository.save(invoice);
     }
@@ -41,11 +44,28 @@ public class InvoiceService {
     }
 
     @Transactional
-    public Invoice updateInvoice(UUID id, Invoice updates) {
+    public Invoice updateInvoice(UUID id, CreateInvoiceRequest request) {
         Invoice invoice = getInvoice(id);
-        invoice.setStatus(updates.getStatus());
-        invoice.setPaidAt(updates.getPaidAt());
+        applyRequest(invoice, request);
         return invoiceRepository.save(invoice);
+    }
+
+    private void applyRequest(Invoice invoice, CreateInvoiceRequest request) {
+        invoice.setType(request.getType());
+        invoice.setPartnerId(request.getPartnerId());
+        invoice.setDealId(request.getDealId());
+        invoice.setPurchaseOrderId(request.getPurchaseOrderId());
+        invoice.setStatus(request.getStatus());
+        invoice.setDueDate(request.getDueDate());
+        invoice.setSentAt(request.getSentAt());
+        invoice.setPaidAt(request.getPaidAt());
+        invoice.setCustomerAccount(request.getCustomerAccount());
+        invoice.setCustomerName(request.getCustomerName());
+        invoice.setDeliveryAddress(request.getDeliveryAddress());
+        invoice.setVatNumber(request.getVatNumber());
+        invoice.setSubtotal(request.getSubtotal());
+        invoice.setTax(request.getTax());
+        invoice.setTotal(request.getTotal());
     }
 
     @Transactional
