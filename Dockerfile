@@ -5,7 +5,7 @@ WORKDIR /build
 
 COPY pom.xml .
 COPY src ./src
-COPY .m2/settings.xml /root/.m2/settings.xml
+COPY maven-settings.xml /root/.m2/settings.xml
 
 RUN mvn clean package -DskipTests \
     -s /root/.m2/settings.xml \
