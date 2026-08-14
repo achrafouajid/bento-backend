@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.UUID;
 
 @Data
@@ -86,8 +87,10 @@ public class DealResponse {
                 .transportationService(deal.getTransportationService())
                 .createdBy(deal.getCreatedBy())
                 .updatedBy(deal.getUpdatedBy())
-                .createdAt(deal.getCreatedAt())
-                .updatedAt(deal.getUpdatedAt())
+                .createdAt(deal.getCreatedAt() != null ?
+                    LocalDateTime.ofInstant(deal.getCreatedAt(), ZoneOffset.UTC) : null)
+                .updatedAt(deal.getUpdatedAt() != null ?
+                    LocalDateTime.ofInstant(deal.getUpdatedAt(), ZoneOffset.UTC) : null)
                 .build();
     }
 }

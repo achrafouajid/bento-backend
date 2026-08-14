@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.UUID;
 
 @Data
@@ -49,8 +50,10 @@ public class TaskResponse {
                 .relatedEntityId(task.getRelatedEntityId())
                 .createdBy(task.getCreatedBy())
                 .updatedBy(task.getUpdatedBy())
-                .createdAt(task.getCreatedAt())
-                .updatedAt(task.getUpdatedAt())
+                .createdAt(task.getCreatedAt() != null ?
+                    LocalDateTime.ofInstant(task.getCreatedAt(), ZoneOffset.UTC) : null)
+                .updatedAt(task.getUpdatedAt() != null ?
+                    LocalDateTime.ofInstant(task.getUpdatedAt(), ZoneOffset.UTC) : null)
                 .build();
     }
 }
