@@ -7,7 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -28,10 +28,25 @@ public class CampaignResponse {
     private Instant scheduledAt;
     private Long sentCount;
     private Map<String, Object> metrics;
+
+    // WhatsApp channel
+    private String templateName;
+    private String templateLang;
+    private List<String> templateParams;
+    private String bodyPreview;
+    private Boolean followupEnabled;
+    private Integer followupDelayDays;
+    private String followupTemplateName;
+    private Integer followupDelayMinutes;
+    private Instant launchedAt;
+
     private UUID createdBy;
     private UUID updatedBy;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    // These were previously converted with LocalDateTime.from(Instant), which throws
+    // DateTimeException at runtime because an Instant carries no local date or time
+    // fields. Keeping them as Instant matches the entity and the other DTOs.
+    private Instant createdAt;
+    private Instant updatedAt;
 
     public static CampaignResponse fromEntity(Campaign campaign) {
         return CampaignResponse.builder()
@@ -46,12 +61,19 @@ public class CampaignResponse {
                 .scheduledAt(campaign.getScheduledAt())
                 .sentCount(campaign.getSentCount())
                 .metrics(campaign.getMetrics())
+                .templateName(campaign.getTemplateName())
+                .templateLang(campaign.getTemplateLang())
+                .templateParams(campaign.getTemplateParams())
+                .bodyPreview(campaign.getBodyPreview())
+                .followupEnabled(campaign.getFollowupEnabled())
+                .followupDelayDays(campaign.getFollowupDelayDays())
+                .followupTemplateName(campaign.getFollowupTemplateName())
+                .followupDelayMinutes(campaign.getFollowupDelayMinutes())
+                .launchedAt(campaign.getLaunchedAt())
                 .createdBy(campaign.getCreatedBy())
                 .updatedBy(campaign.getUpdatedBy())
-                .createdAt(campaign.getCreatedAt() != null ?
-                    LocalDateTime.from(campaign.getCreatedAt()) : null)
-                .updatedAt(campaign.getUpdatedAt() != null ?
-                    LocalDateTime.from(campaign.getUpdatedAt()) : null)
+                .createdAt(campaign.getCreatedAt())
+                .updatedAt(campaign.getUpdatedAt())
                 .build();
     }
 }

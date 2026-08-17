@@ -79,6 +79,9 @@ public class TenantFilterInterceptor extends OncePerRequestFilter {
                 || path.endsWith("/organizations")
                 || path.contains("/actuator/health")
                 || path.contains("/swagger-ui")
-                || path.contains("/openapi");
+                || path.contains("/openapi")
+                // The WhatsApp webhook carries no JWT and therefore no org claim; it
+                // resolves its own tenant from metadata.phone_number_id instead.
+                || path.contains("/webhooks/whatsapp");
     }
 }
