@@ -38,7 +38,11 @@ public class SecurityConfig {
                                 "/actuator/health",
                                 "/swagger-ui.html",
                                 "/openapi/**",
-                                "/swagger-ui/**"
+                                "/swagger-ui/**",
+                                // Meta calls this with no Authorization header; it
+                                // authenticates itself with an HMAC over the raw body,
+                                // verified in WhatsAppWebhookController.
+                                "/webhooks/whatsapp"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

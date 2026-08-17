@@ -26,4 +26,22 @@ public interface PartnerRepository extends JpaRepository<Partner, UUID> {
 
     @Query("SELECT p FROM Partner p WHERE p.organizationId = :orgId ORDER BY p.createdAt DESC")
     Page<Partner> findByOrganizationId(@Param("orgId") UUID orgId, Pageable pageable);
+
+    /**
+     * Matches a contact by phone number for inbound WhatsApp routing.
+     *
+     * <p>Partner phone numbers are free text, so the same person may be stored as
+     * {@code 0661234567} while Meta reports {@code +212661234567}. Comparing the
+     * last nine digits of the stripped number makes both forms collide, which no
+     * equality match on the raw column could do.
+     */
+    @Query(value = """
+            SELECT * FROM partner p
+            WHERE p.organization_id = :orgId
+              AND length(regexp_replace(coalesce(p.phone, ''), '[^0-9]', '', 'g')) >= 9
+              AND right(regexp_replace(coalesce(p.phone, ''), '[^0-9]', '', 'g'), 9) = right(:digits, 9)
+            LIMIT 1
+            """, nativeQuery = true)
+    Optional<Partner> findByOrganizationIdAndPhoneDigits(@Param("orgId") UUID orgId,
+                                                         @Param("digits") String digits);
 }

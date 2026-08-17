@@ -73,3 +73,27 @@ springdoc:
   swagger-ui:
     path: /swagger-ui.html
     enabled: true
+
+whatsapp:
+  meta:
+    base-url: https://graph.facebook.com
+    api-version: v22.0
+    # HMAC key Meta signs webhook bodies with. Belongs to the Meta App, so it is
+    # shared by every WABA subscribed to that app. Left empty, signature checking
+    # is skipped and a warning is logged on every callback — set it before going live.
+    app-secret: ${WHATSAPP_APP_SECRET:}
+    # Echoed back during Meta's subscription handshake; must match what is typed
+    # into the webhook configuration in Business Manager.
+    verify-token: ${WHATSAPP_VERIFY_TOKEN:bento-verify}
+  followup:
+    poll-interval-ms: ${WHATSAPP_FOLLOWUP_POLL_MS:60000}
+    initial-delay-ms: 30000
+    batch-size: 50
+    max-attempts: 3
+    business-hours:
+      # Relances outside these hours are pushed to the next window rather than sent:
+      # a marketing message at 03:00 earns blocks, and blocks cost quality rating.
+      enabled: ${WHATSAPP_BUSINESS_HOURS:true}
+      zone: Africa/Casablanca
+      start: 9
+      end: 18

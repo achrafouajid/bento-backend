@@ -32,7 +32,19 @@ public class NotificationService {
 
     @Transactional
     public Notification create(Notification notification) {
-        notification.setOrganizationId(TenantContext.getCurrentOrganizationId());
+        return createForOrganization(TenantContext.getCurrentOrganizationId(), notification);
+    }
+
+    /**
+     * Creates a notification for an explicitly supplied tenant.
+     *
+     * <p>Needed by callers that run outside a authenticated request — the inbound
+     * WhatsApp webhook and the relance scheduler — where the {@code TenantContext}
+     * ThreadLocal is never populated and {@link #create} would throw.
+     */
+    @Transactional
+    public Notification createForOrganization(UUID organizationId, Notification notification) {
+        notification.setOrganizationId(organizationId);
         if (notification.getIsRead() == null) {
             notification.setIsRead(false);
         }
