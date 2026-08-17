@@ -7,14 +7,19 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
+// Disabled in integration tests (see IntegrationTestBase) -- the signup/auth buckets are scoped
+// per-IP with production-appropriate limits (e.g. 5 signups/hour), which a test suite blows
+// through in seconds since every MockMvc request comes from the same loopback address.
 @Component
 @RequiredArgsConstructor
+@ConditionalOnProperty(name = "app.rate-limit.enabled", havingValue = "true", matchIfMissing = true)
 public class RateLimitFilter extends OncePerRequestFilter {
 
     private final RateLimitConfig rateLimitConfig;
@@ -25,7 +30,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
         String clientIp = getClientIp(request);
 
-        Bucket bucket = selectBucket(path, clientIp);
+        Bucket bucket = selectBucket(path, request.getMethod(), clientIp);
         ConsumptionProbe probe = bucket.tryConsumeAndReturnRemaining(1);
 
         if (probe.isConsumed()) {
@@ -39,10 +44,10 @@ public class RateLimitFilter extends OncePerRequestFilter {
         }
     }
 
-    private Bucket selectBucket(String path, String clientIp) {
+    private Bucket selectBucket(String path, String method, String clientIp) {
         if (path.contains("/auth/login")) {
             return rateLimitConfig.resolveAuthBucket(clientIp);
-        } else if (path.contains("/organizations")) {
+        } else if (path.endsWith("/organizations") && "POST".equalsIgnoreCase(method)) {
             return rateLimitConfig.resolveSignupBucket(clientIp);
         } else {
             return rateLimitConfig.resolveBucket(clientIp);

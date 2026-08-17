@@ -7,6 +7,9 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
 
 @Data
 @NoArgsConstructor
@@ -54,4 +57,16 @@ public class CreatePartnerRequest {
     private Integer probability;
 
     private String comments;
+
+    @JsonProperty("expected_close_date")
+    private LocalDate expectedCloseDate;
+
+    private Map<String, Object> company;
+
+    @JsonProperty("product_interests")
+    private List<Map<String, Object>> productInterests;
+
+    private List<Map<String, Object>> campaigns;
+
+    private String notes;
 }

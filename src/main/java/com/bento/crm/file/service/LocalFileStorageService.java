@@ -17,6 +17,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -67,6 +68,12 @@ public class LocalFileStorageService implements FileStorageService {
         UUID orgId = TenantContext.getCurrentOrganizationId();
         return fileRepository.findByOrganizationIdAndId(orgId, fileId)
                 .orElseThrow(() -> new ResourceNotFoundException("File not found"));
+    }
+
+    @Override
+    public List<StoredFile> listByOwner(String ownerEntityType, UUID ownerEntityId) {
+        UUID orgId = TenantContext.getCurrentOrganizationId();
+        return fileRepository.findByOrganizationIdAndOwnerEntityTypeAndOwnerEntityId(orgId, ownerEntityType, ownerEntityId);
     }
 
     @Override

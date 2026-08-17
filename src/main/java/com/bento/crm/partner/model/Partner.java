@@ -6,9 +6,13 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Entity
@@ -74,6 +78,21 @@ public class Partner extends BaseTenantEntity {
 
     @Column(columnDefinition = "text")
     private String comments;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
+    private Map<String, Object> company;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
+    private List<Map<String, Object>> productInterests;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
+    private List<Map<String, Object>> campaigns;
+
+    @Column(columnDefinition = "text")
+    private String notes;
 
     public enum PartnerType {
         LEAD, PROSPECT, CUSTOMER, VENDOR

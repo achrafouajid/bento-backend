@@ -1,12 +1,13 @@
 package com.bento.crm.identity.dto;
 
 import com.bento.crm.identity.model.Team;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.UUID;
 
 @Data
@@ -16,16 +17,26 @@ import java.util.UUID;
 public class TeamResponse {
 
     private UUID id;
+
+    @JsonProperty("organization_id")
     private UUID organizationId;
+
     private String name;
+
     private Team.TeamDepartment department;
+
     private String description;
+
+    @JsonProperty("lead_user_id")
     private UUID leadUserId;
+
     private String color;
-    private UUID createdBy;
-    private UUID updatedBy;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+
+    @JsonProperty("created_at")
+    private Instant createdAt;
+
+    @JsonProperty("updated_at")
+    private Instant updatedAt;
 
     public static TeamResponse fromEntity(Team team) {
         return TeamResponse.builder()
@@ -36,12 +47,8 @@ public class TeamResponse {
                 .description(team.getDescription())
                 .leadUserId(team.getLeadUserId())
                 .color(team.getColor())
-                .createdBy(team.getCreatedBy())
-                .updatedBy(team.getUpdatedBy())
-                .createdAt(team.getCreatedAt() != null ?
-                    LocalDateTime.from(team.getCreatedAt()) : null)
-                .updatedAt(team.getUpdatedAt() != null ?
-                    LocalDateTime.from(team.getUpdatedAt()) : null)
+                .createdAt(team.getCreatedAt())
+                .updatedAt(team.getUpdatedAt())
                 .build();
     }
 }

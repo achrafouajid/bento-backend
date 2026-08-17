@@ -4,6 +4,8 @@ import com.bento.crm.auth.dto.LoginRequest;
 import com.bento.crm.auth.dto.LoginResponse;
 import com.bento.crm.auth.dto.RefreshTokenRequest;
 import com.bento.crm.auth.service.AuthService;
+import com.bento.crm.identity.dto.UserResponseDto;
+import com.bento.crm.identity.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -22,6 +24,7 @@ import java.util.UUID;
 public class AuthController {
 
     private final AuthService authService;
+    private final UserService userService;
 
     @PostMapping("/login")
     @Operation(summary = "Login with email and password", description = "Authenticate and receive JWT tokens")
@@ -49,10 +52,11 @@ public class AuthController {
 
     @GetMapping("/me")
     @Operation(summary = "Get current user info", description = "Get authenticated user information")
-    public ResponseEntity<String> getCurrentUser(Authentication authentication) {
-        if (authentication != null) {
-            return ResponseEntity.ok("User: " + authentication.getName());
+    public ResponseEntity<UserResponseDto> getCurrentUser(Authentication authentication) {
+        if (authentication == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        UUID userId = UUID.fromString(authentication.getName());
+        return ResponseEntity.ok(userService.getUserById(userId));
     }
 }

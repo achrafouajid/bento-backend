@@ -2,6 +2,7 @@ package com.bento.crm.identity.controller;
 
 import com.bento.crm.common.dto.PageResponse;
 import com.bento.crm.identity.dto.CreateTeamRequest;
+import com.bento.crm.identity.dto.TeamResponse;
 import com.bento.crm.identity.model.Team;
 import com.bento.crm.identity.service.TeamService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -30,33 +31,33 @@ public class TeamController {
     @PostMapping
     @PreAuthorize("hasAuthority('TEAMS_CREATE')")
     @Operation(summary = "Create team", description = "Create new team in the organization")
-    public ResponseEntity<Team> createTeam(@Valid @RequestBody CreateTeamRequest request) {
+    public ResponseEntity<TeamResponse> createTeam(@Valid @RequestBody CreateTeamRequest request) {
         Team team = teamService.createTeam(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(team);
+        return ResponseEntity.status(HttpStatus.CREATED).body(TeamResponse.fromEntity(team));
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('TEAMS_READ')")
     @Operation(summary = "Get team by ID", description = "Retrieve team details")
-    public ResponseEntity<Team> getTeam(@PathVariable UUID id) {
+    public ResponseEntity<TeamResponse> getTeam(@PathVariable UUID id) {
         Team team = teamService.getTeam(id);
-        return ResponseEntity.ok(team);
+        return ResponseEntity.ok(TeamResponse.fromEntity(team));
     }
 
     @GetMapping
     @PreAuthorize("hasAuthority('TEAMS_READ')")
     @Operation(summary = "List teams", description = "List all teams in the organization")
-    public ResponseEntity<PageResponse<Team>> listTeams(Pageable pageable) {
-        Page<Team> page = teamService.listTeams(pageable);
+    public ResponseEntity<PageResponse<TeamResponse>> listTeams(Pageable pageable) {
+        Page<TeamResponse> page = teamService.listTeams(pageable).map(TeamResponse::fromEntity);
         return ResponseEntity.ok(PageResponse.fromPage(page));
     }
 
     @PatchMapping("/{id}")
     @PreAuthorize("hasAuthority('TEAMS_WRITE')")
     @Operation(summary = "Update team", description = "Update team information")
-    public ResponseEntity<Team> updateTeam(@PathVariable UUID id, @Valid @RequestBody CreateTeamRequest request) {
+    public ResponseEntity<TeamResponse> updateTeam(@PathVariable UUID id, @Valid @RequestBody CreateTeamRequest request) {
         Team team = teamService.updateTeam(id, request);
-        return ResponseEntity.ok(team);
+        return ResponseEntity.ok(TeamResponse.fromEntity(team));
     }
 
     @DeleteMapping("/{id}")

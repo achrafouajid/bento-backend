@@ -14,7 +14,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/files")
@@ -32,6 +34,17 @@ public class FileController {
             @RequestParam("ownerEntityId") UUID ownerEntityId) {
         StoredFile storedFile = fileStorageService.store(file, ownerEntityType, ownerEntityId);
         return ResponseEntity.status(HttpStatus.CREATED).body(StoredFileResponse.fromEntity(storedFile));
+    }
+
+    @GetMapping
+    @Operation(summary = "List files for owner", description = "List files attached to an owner entity")
+    public ResponseEntity<List<StoredFileResponse>> listFiles(
+            @RequestParam("ownerEntityType") String ownerEntityType,
+            @RequestParam("ownerEntityId") UUID ownerEntityId) {
+        List<StoredFileResponse> files = fileStorageService.listByOwner(ownerEntityType, ownerEntityId).stream()
+                .map(StoredFileResponse::fromEntity)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(files);
     }
 
     @GetMapping("/{id}")
