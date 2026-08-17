@@ -10,6 +10,8 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Data
@@ -35,6 +37,7 @@ public class InvoiceResponse {
     private BigDecimal subtotal;
     private BigDecimal tax;
     private BigDecimal total;
+    private List<Map<String, Object>> lines;
     private UUID createdBy;
     private UUID updatedBy;
     private LocalDateTime createdAt;
@@ -59,6 +62,7 @@ public class InvoiceResponse {
                 .subtotal(invoice.getSubtotal())
                 .tax(invoice.getTax())
                 .total(invoice.getTotal())
+                .lines(invoice.getLines())
                 .createdBy(invoice.getCreatedBy())
                 .updatedBy(invoice.getUpdatedBy())
                 .createdAt(invoice.getCreatedAt() != null ?

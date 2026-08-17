@@ -66,6 +66,7 @@ public class InvoiceService {
         invoice.setSubtotal(request.getSubtotal());
         invoice.setTax(request.getTax());
         invoice.setTotal(request.getTotal());
+        invoice.setLines(request.getLines());
     }
 
     @Transactional
