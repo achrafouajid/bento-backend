@@ -1,0 +1,130 @@
+package com.bento.crm.partner.dto;
+
+import com.bento.crm.partner.model.Partner;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+/**
+ * Uses the same snake_case wire format as {@link CreatePartnerRequest} so a
+ * partner read back from GET /partners round-trips through the same field
+ * names it was written with.
+ */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class PartnerResponse {
+
+    private UUID id;
+
+    @JsonProperty("organization_id")
+    private UUID organizationId;
+
+    private Partner.PartnerType type;
+
+    private String name;
+
+    @JsonProperty("company_name")
+    private String companyName;
+
+    @JsonProperty("record_type")
+    private Partner.RecordType recordType;
+
+    private String email;
+
+    private String phone;
+
+    private String city;
+
+    private String country;
+
+    private Partner.PartnerSource source;
+
+    private Integer score;
+
+    private Partner.Temperature temperature;
+
+    private Partner.Priority priority;
+
+    private Partner.Qualification qualification;
+
+    private Partner.PartnerStage stage;
+
+    @JsonProperty("assigned_to_user_id")
+    private UUID assignedToUserId;
+
+    @JsonProperty("owner_id")
+    private UUID ownerId;
+
+    @JsonProperty("converted_from_partner_id")
+    private UUID convertedFromPartnerId;
+
+    @JsonProperty("estimated_deal_value")
+    private BigDecimal estimatedDealValue;
+
+    private Integer probability;
+
+    @JsonProperty("expected_close_date")
+    private LocalDate expectedCloseDate;
+
+    private String comments;
+
+    private Map<String, Object> company;
+
+    @JsonProperty("product_interests")
+    private List<Map<String, Object>> productInterests;
+
+    private List<Map<String, Object>> campaigns;
+
+    private String notes;
+
+    @JsonProperty("created_at")
+    private Instant createdAt;
+
+    @JsonProperty("updated_at")
+    private Instant updatedAt;
+
+    public static PartnerResponse fromEntity(Partner partner) {
+        return PartnerResponse.builder()
+                .id(partner.getId())
+                .organizationId(partner.getOrganizationId())
+                .type(partner.getType())
+                .name(partner.getName())
+                .companyName(partner.getCompanyName())
+                .recordType(partner.getRecordType())
+                .email(partner.getEmail())
+                .phone(partner.getPhone())
+                .city(partner.getCity())
+                .country(partner.getCountry())
+                .source(partner.getSource())
+                .score(partner.getScore())
+                .temperature(partner.getTemperature())
+                .priority(partner.getPriority())
+                .qualification(partner.getQualification())
+                .stage(partner.getStage())
+                .assignedToUserId(partner.getAssignedToUserId())
+                .ownerId(partner.getOwnerId())
+                .convertedFromPartnerId(partner.getConvertedFromPartnerId())
+                .estimatedDealValue(partner.getEstimatedDealValue())
+                .probability(partner.getProbability())
+                .expectedCloseDate(partner.getExpectedCloseDate())
+                .comments(partner.getComments())
+                .company(partner.getCompany())
+                .productInterests(partner.getProductInterests())
+                .campaigns(partner.getCampaigns())
+                .notes(partner.getNotes())
+                .createdAt(partner.getCreatedAt())
+                .updatedAt(partner.getUpdatedAt())
+                .build();
+    }
+}

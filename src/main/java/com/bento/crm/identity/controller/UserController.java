@@ -2,6 +2,7 @@ package com.bento.crm.identity.controller;
 
 import com.bento.crm.common.dto.PageResponse;
 import com.bento.crm.identity.dto.CreateUserRequest;
+import com.bento.crm.identity.dto.UpdateOwnProfileRequest;
 import com.bento.crm.identity.dto.UpdateUserRequest;
 import com.bento.crm.identity.dto.UserResponseDto;
 import com.bento.crm.identity.service.UserService;
@@ -14,6 +15,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -55,6 +57,14 @@ public class UserController {
     @Operation(summary = "Update user", description = "Update user information")
     public ResponseEntity<UserResponseDto> updateUser(@PathVariable UUID id, @Valid @RequestBody UpdateUserRequest request) {
         UserResponseDto user = userService.updateUser(id, request);
+        return ResponseEntity.ok(user);
+    }
+
+    @PatchMapping("/me")
+    @Operation(summary = "Update own profile", description = "Update the authenticated user's own display name, phone, job title, and language -- does not require USERS_WRITE and cannot change role or team")
+    public ResponseEntity<UserResponseDto> updateOwnProfile(Authentication authentication, @Valid @RequestBody UpdateOwnProfileRequest request) {
+        UUID userId = UUID.fromString(authentication.getName());
+        UserResponseDto user = userService.updateOwnProfile(userId, request);
         return ResponseEntity.ok(user);
     }
 

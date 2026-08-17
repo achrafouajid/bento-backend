@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -14,4 +15,7 @@ public interface StoredFileRepository extends JpaRepository<StoredFile, UUID> {
 
     @Query("SELECT f FROM StoredFile f WHERE f.organizationId = :orgId AND f.id = :id")
     Optional<StoredFile> findByOrganizationIdAndId(@Param("orgId") UUID orgId, @Param("id") UUID id);
+
+    @Query("SELECT f FROM StoredFile f WHERE f.organizationId = :orgId AND f.ownerEntityType = :ownerEntityType AND f.ownerEntityId = :ownerEntityId ORDER BY f.uploadedAt DESC")
+    List<StoredFile> findByOrganizationIdAndOwnerEntityTypeAndOwnerEntityId(@Param("orgId") UUID orgId, @Param("ownerEntityType") String ownerEntityType, @Param("ownerEntityId") UUID ownerEntityId);
 }

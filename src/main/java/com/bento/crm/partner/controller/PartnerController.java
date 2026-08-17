@@ -2,6 +2,7 @@ package com.bento.crm.partner.controller;
 
 import com.bento.crm.common.dto.PageResponse;
 import com.bento.crm.partner.dto.CreatePartnerRequest;
+import com.bento.crm.partner.dto.PartnerResponse;
 import com.bento.crm.partner.model.Partner;
 import com.bento.crm.partner.service.PartnerService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -28,49 +29,51 @@ public class PartnerController {
     @PostMapping
     @PreAuthorize("hasAuthority('PARTNERS_CREATE')")
     @Operation(summary = "Create partner", description = "Create new partner (lead/prospect/customer/vendor)")
-    public ResponseEntity<Partner> createPartner(@Valid @RequestBody CreatePartnerRequest request) {
+    public ResponseEntity<PartnerResponse> createPartner(@Valid @RequestBody CreatePartnerRequest request) {
         Partner partner = partnerService.createPartner(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(partner);
+        return ResponseEntity.status(HttpStatus.CREATED).body(PartnerResponse.fromEntity(partner));
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('PARTNERS_READ')")
     @Operation(summary = "Get partner", description = "Retrieve partner details")
-    public ResponseEntity<Partner> getPartner(@PathVariable UUID id) {
+    public ResponseEntity<PartnerResponse> getPartner(@PathVariable UUID id) {
         Partner partner = partnerService.getPartner(id);
-        return ResponseEntity.ok(partner);
+        return ResponseEntity.ok(PartnerResponse.fromEntity(partner));
     }
 
     @GetMapping
     @PreAuthorize("hasAuthority('PARTNERS_READ')")
     @Operation(summary = "List partners", description = "List all partners in organization")
-    public ResponseEntity<PageResponse<Partner>> listPartners(Pageable pageable) {
-        Page<Partner> page = partnerService.listPartners(pageable);
+    public ResponseEntity<PageResponse<PartnerResponse>> listPartners(Pageable pageable) {
+        Page<PartnerResponse> page = partnerService.listPartners(pageable).map(PartnerResponse::fromEntity);
         return ResponseEntity.ok(PageResponse.fromPage(page));
     }
 
     @GetMapping("/type/{type}")
     @PreAuthorize("hasAuthority('PARTNERS_READ')")
     @Operation(summary = "List partners by type", description = "List partners filtered by type")
-    public ResponseEntity<PageResponse<Partner>> listPartnersByType(@PathVariable String type, Pageable pageable) {
-        Page<Partner> page = partnerService.listPartnersByType(Partner.PartnerType.valueOf(type), pageable);
+    public ResponseEntity<PageResponse<PartnerResponse>> listPartnersByType(@PathVariable String type, Pageable pageable) {
+        Page<PartnerResponse> page = partnerService.listPartnersByType(Partner.PartnerType.valueOf(type), pageable)
+                .map(PartnerResponse::fromEntity);
         return ResponseEntity.ok(PageResponse.fromPage(page));
     }
 
     @GetMapping("/stage/{stage}")
     @PreAuthorize("hasAuthority('PARTNERS_READ')")
     @Operation(summary = "List partners by stage", description = "List partners filtered by stage")
-    public ResponseEntity<PageResponse<Partner>> listPartnersByStage(@PathVariable String stage, Pageable pageable) {
-        Page<Partner> page = partnerService.listPartnersByStage(Partner.PartnerStage.valueOf(stage), pageable);
+    public ResponseEntity<PageResponse<PartnerResponse>> listPartnersByStage(@PathVariable String stage, Pageable pageable) {
+        Page<PartnerResponse> page = partnerService.listPartnersByStage(Partner.PartnerStage.valueOf(stage), pageable)
+                .map(PartnerResponse::fromEntity);
         return ResponseEntity.ok(PageResponse.fromPage(page));
     }
 
     @PatchMapping("/{id}")
     @PreAuthorize("hasAuthority('PARTNERS_WRITE')")
     @Operation(summary = "Update partner", description = "Update partner information")
-    public ResponseEntity<Partner> updatePartner(@PathVariable UUID id, @Valid @RequestBody CreatePartnerRequest request) {
+    public ResponseEntity<PartnerResponse> updatePartner(@PathVariable UUID id, @Valid @RequestBody CreatePartnerRequest request) {
         Partner partner = partnerService.updatePartner(id, request);
-        return ResponseEntity.ok(partner);
+        return ResponseEntity.ok(PartnerResponse.fromEntity(partner));
     }
 
     @DeleteMapping("/{id}")
