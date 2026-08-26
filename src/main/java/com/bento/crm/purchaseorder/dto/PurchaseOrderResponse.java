@@ -6,8 +6,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Data
@@ -25,8 +25,10 @@ public class PurchaseOrderResponse {
     private String sentVia;
     private UUID createdBy;
     private UUID updatedBy;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    // Kept as Instant to match the entity: LocalDateTime.from(Instant) throws DateTimeException
+    // at runtime because an Instant carries no local date or time fields.
+    private Instant createdAt;
+    private Instant updatedAt;
 
     public static PurchaseOrderResponse fromEntity(PurchaseOrder purchaseOrder) {
         return PurchaseOrderResponse.builder()
@@ -39,10 +41,8 @@ public class PurchaseOrderResponse {
                 .sentVia(purchaseOrder.getSentVia())
                 .createdBy(purchaseOrder.getCreatedBy())
                 .updatedBy(purchaseOrder.getUpdatedBy())
-                .createdAt(purchaseOrder.getCreatedAt() != null ?
-                    LocalDateTime.from(purchaseOrder.getCreatedAt()) : null)
-                .updatedAt(purchaseOrder.getUpdatedAt() != null ?
-                    LocalDateTime.from(purchaseOrder.getUpdatedAt()) : null)
+                .createdAt(purchaseOrder.getCreatedAt())
+                .updatedAt(purchaseOrder.getUpdatedAt())
                 .build();
     }
 }
