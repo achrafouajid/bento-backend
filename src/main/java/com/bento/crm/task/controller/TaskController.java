@@ -1,11 +1,13 @@
 package com.bento.crm.task.controller;
 
 import com.bento.crm.common.dto.PageResponse;
+import com.bento.crm.common.model.RelatedEntityType;
 import com.bento.crm.task.dto.CreateTaskRequest;
 import com.bento.crm.task.dto.TaskResponse;
 import com.bento.crm.task.model.Task;
 import com.bento.crm.task.service.TaskService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -46,9 +48,16 @@ public class TaskController {
 
     @GetMapping
     @PreAuthorize("hasAuthority('TASKS_READ')")
-    @Operation(summary = "List tasks", description = "List all tasks in the organization")
-    public ResponseEntity<PageResponse<TaskResponse>> listTasks(Pageable pageable) {
-        Page<Task> page = taskService.listTasks(pageable);
+    @Operation(summary = "List tasks",
+            description = "List tasks in the organization, optionally narrowed to those linked to a "
+                    + "given record (e.g. every task raised for one customer or deal).")
+    public ResponseEntity<PageResponse<TaskResponse>> listTasks(
+            @Parameter(description = "Only tasks linked to this kind of record")
+            @RequestParam(required = false) RelatedEntityType relatedEntityType,
+            @Parameter(description = "Only tasks linked to this record id")
+            @RequestParam(required = false) UUID relatedEntityId,
+            Pageable pageable) {
+        Page<Task> page = taskService.listTasks(relatedEntityType, relatedEntityId, pageable);
         Page<TaskResponse> dtoPage = page.map(TaskResponse::fromEntity);
         return ResponseEntity.ok(PageResponse.fromPage(dtoPage));
     }

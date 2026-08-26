@@ -1,5 +1,7 @@
 package com.bento.crm.task.dto;
 
+import com.bento.crm.common.model.EntityLink;
+import com.bento.crm.common.model.RelatedEntityType;
 import com.bento.crm.task.model.Task;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -27,7 +29,7 @@ public class TaskResponse {
     private Task.TaskStatus status;
     private Task.Priority priority;
     private LocalDate dueDate;
-    private Task.RelatedEntityType relatedEntityType;
+    private RelatedEntityType relatedEntityType;
     private UUID relatedEntityId;
     private UUID createdBy;
     private UUID updatedBy;
@@ -35,6 +37,7 @@ public class TaskResponse {
     private LocalDateTime updatedAt;
 
     public static TaskResponse fromEntity(Task task) {
+        EntityLink link = task.getRelatedEntity() != null ? task.getRelatedEntity() : EntityLink.empty();
         return TaskResponse.builder()
                 .id(task.getId())
                 .organizationId(task.getOrganizationId())
@@ -46,8 +49,8 @@ public class TaskResponse {
                 .status(task.getStatus())
                 .priority(task.getPriority())
                 .dueDate(task.getDueDate())
-                .relatedEntityType(task.getRelatedEntityType())
-                .relatedEntityId(task.getRelatedEntityId())
+                .relatedEntityType(link.getRelatedEntityType())
+                .relatedEntityId(link.getRelatedEntityId())
                 .createdBy(task.getCreatedBy())
                 .updatedBy(task.getUpdatedBy())
                 .createdAt(task.getCreatedAt() != null ?

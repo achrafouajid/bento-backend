@@ -6,7 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
 
@@ -29,8 +29,10 @@ public class AutomationRuleResponse {
     private Integer version;
     private UUID createdBy;
     private UUID updatedBy;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    // Kept as Instant to match the entity: LocalDateTime.from(Instant) throws DateTimeException
+    // at runtime because an Instant carries no local date or time fields.
+    private Instant createdAt;
+    private Instant updatedAt;
 
     public static AutomationRuleResponse fromEntity(AutomationRule automationRule) {
         return AutomationRuleResponse.builder()
@@ -47,10 +49,8 @@ public class AutomationRuleResponse {
                 .version(automationRule.getVersion())
                 .createdBy(automationRule.getCreatedBy())
                 .updatedBy(automationRule.getUpdatedBy())
-                .createdAt(automationRule.getCreatedAt() != null ?
-                    LocalDateTime.from(automationRule.getCreatedAt()) : null)
-                .updatedAt(automationRule.getUpdatedAt() != null ?
-                    LocalDateTime.from(automationRule.getUpdatedAt()) : null)
+                .createdAt(automationRule.getCreatedAt())
+                .updatedAt(automationRule.getUpdatedAt())
                 .build();
     }
 }

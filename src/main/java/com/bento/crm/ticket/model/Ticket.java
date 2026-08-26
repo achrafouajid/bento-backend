@@ -1,6 +1,7 @@
 package com.bento.crm.ticket.model;
 
 import com.bento.crm.common.model.BaseTenantEntity;
+import com.bento.crm.common.model.EntityLink;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -24,8 +25,21 @@ public class Ticket extends BaseTenantEntity {
     @Column(columnDefinition = "text")
     private String description;
 
-    @Column(nullable = false, columnDefinition = "uuid")
+    /**
+     * Denormalised mirror of {@link #relatedEntity} when it points at a partner, kept so
+     * partner-scoped reads and the {@code idx_ticket_partner} index still work. Maintained by
+     * the service layer only — never set it independently of the link.
+     */
+    @Column(columnDefinition = "uuid")
     private UUID partnerId;
+
+    /**
+     * Optional record this ticket concerns (deal, proposal, customer/prospect…).
+     * Never {@code null} as an object — an unlinked ticket holds an empty link.
+     */
+    @Embedded
+    @Builder.Default
+    private EntityLink relatedEntity = EntityLink.empty();
 
     @Column(columnDefinition = "uuid")
     private UUID assignedToUserId;

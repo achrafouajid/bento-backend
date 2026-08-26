@@ -9,6 +9,8 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Data
@@ -29,6 +31,10 @@ public class CreateInvoiceRequest {
     @NotNull
     private Invoice.Status status;
 
+    private String invoiceNumber;
+
+    private LocalDate invoiceDate;
+
     private LocalDate dueDate;
 
     private Instant sentAt;
@@ -48,4 +54,6 @@ public class CreateInvoiceRequest {
     private BigDecimal tax;
 
     private BigDecimal total;
+
+    private List<Map<String, Object>> lines;
 }

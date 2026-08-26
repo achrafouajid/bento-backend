@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -22,4 +23,11 @@ public interface InvoiceRepository extends JpaRepository<Invoice, UUID> {
 
     @Query("SELECT i FROM Invoice i WHERE i.organizationId = :orgId AND i.status = :status")
     Page<Invoice> findByOrganizationIdAndStatus(@Param("orgId") UUID orgId, @Param("status") Invoice.Status status, Pageable pageable);
+
+    /**
+     * Every invoice for one partner, unpaged: the partner ledger has to total the whole
+     * relationship, so a page of it would give a wrong balance.
+     */
+    @Query("SELECT i FROM Invoice i WHERE i.organizationId = :orgId AND i.partnerId = :partnerId ORDER BY i.invoiceDate, i.createdAt")
+    List<Invoice> findByOrganizationIdAndPartnerId(@Param("orgId") UUID orgId, @Param("partnerId") UUID partnerId);
 }

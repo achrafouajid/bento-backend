@@ -1,5 +1,7 @@
 package com.bento.crm.task.dto;
 
+import com.bento.crm.common.dto.RelatableRequest;
+import com.bento.crm.common.model.RelatedEntityType;
 import com.bento.crm.task.model.Task;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -13,7 +15,7 @@ import java.util.UUID;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class CreateTaskRequest {
+public class CreateTaskRequest implements RelatableRequest {
 
     @NotBlank
     private String title;
@@ -34,8 +36,8 @@ public class CreateTaskRequest {
 
     private LocalDate dueDate;
 
-    @NotNull
-    private Task.RelatedEntityType relatedEntityType;
+    /** Optional — a task does not have to be attached to anything. Editable after creation. */
+    private RelatedEntityType relatedEntityType;
 
     private UUID relatedEntityId;
 }

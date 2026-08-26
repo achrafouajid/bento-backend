@@ -11,6 +11,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -109,9 +110,41 @@ public class PartnerService {
         return partnerRepository.save(partner);
     }
 
+    /**
+     * Soft delete: the partner drops out of every list but stays restorable until
+     * {@link PartnerPurgeScheduler} removes it after the retention window.
+     */
     @Transactional
     public void deletePartner(UUID id) {
         Partner partner = getPartner(id);
-        partnerRepository.delete(partner);
+        partner.setDeletedAt(Instant.now());
+        partnerRepository.save(partner);
+    }
+
+    @Transactional
+    public int batchDelete(List<UUID> ids) {
+        Instant now = Instant.now();
+        int deleted = 0;
+        for (UUID id : ids) {
+            Partner partner = getPartner(id);
+            partner.setDeletedAt(now);
+            partnerRepository.save(partner);
+            deleted++;
+        }
+        return deleted;
+    }
+
+    @Transactional
+    public Partner restorePartner(UUID id) {
+        UUID orgId = TenantContext.getCurrentOrganizationId();
+        Partner partner = partnerRepository.findByOrganizationIdAndIdIncludingDeleted(orgId, id)
+                .orElseThrow(() -> new ResourceNotFoundException("Partner not found"));
+        partner.setDeletedAt(null);
+        return partnerRepository.save(partner);
+    }
+
+    public Page<Partner> listDeleted(Pageable pageable) {
+        UUID orgId = TenantContext.getCurrentOrganizationId();
+        return partnerRepository.findDeletedByOrganizationId(orgId, pageable);
     }
 }

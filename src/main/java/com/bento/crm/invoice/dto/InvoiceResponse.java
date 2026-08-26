@@ -9,7 +9,8 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Data
@@ -25,6 +26,8 @@ public class InvoiceResponse {
     private UUID dealId;
     private UUID purchaseOrderId;
     private Invoice.Status status;
+    private String invoiceNumber;
+    private LocalDate invoiceDate;
     private LocalDate dueDate;
     private Instant sentAt;
     private Instant paidAt;
@@ -35,10 +38,14 @@ public class InvoiceResponse {
     private BigDecimal subtotal;
     private BigDecimal tax;
     private BigDecimal total;
+    private List<Map<String, Object>> lines;
     private UUID createdBy;
     private UUID updatedBy;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    // These were previously converted with LocalDateTime.from(Instant), which throws
+    // DateTimeException at runtime because an Instant carries no local date or time
+    // fields. Keeping them as Instant matches the entity and the other DTOs.
+    private Instant createdAt;
+    private Instant updatedAt;
 
     public static InvoiceResponse fromEntity(Invoice invoice) {
         return InvoiceResponse.builder()
@@ -49,6 +56,8 @@ public class InvoiceResponse {
                 .dealId(invoice.getDealId())
                 .purchaseOrderId(invoice.getPurchaseOrderId())
                 .status(invoice.getStatus())
+                .invoiceNumber(invoice.getInvoiceNumber())
+                .invoiceDate(invoice.getInvoiceDate())
                 .dueDate(invoice.getDueDate())
                 .sentAt(invoice.getSentAt())
                 .paidAt(invoice.getPaidAt())
@@ -59,12 +68,11 @@ public class InvoiceResponse {
                 .subtotal(invoice.getSubtotal())
                 .tax(invoice.getTax())
                 .total(invoice.getTotal())
+                .lines(invoice.getLines())
                 .createdBy(invoice.getCreatedBy())
                 .updatedBy(invoice.getUpdatedBy())
-                .createdAt(invoice.getCreatedAt() != null ?
-                    LocalDateTime.from(invoice.getCreatedAt()) : null)
-                .updatedAt(invoice.getUpdatedAt() != null ?
-                    LocalDateTime.from(invoice.getUpdatedAt()) : null)
+                .createdAt(invoice.getCreatedAt())
+                .updatedAt(invoice.getUpdatedAt())
                 .build();
     }
 }

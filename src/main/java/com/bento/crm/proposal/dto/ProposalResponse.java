@@ -9,7 +9,6 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Data
@@ -36,8 +35,10 @@ public class ProposalResponse {
     private Instant sentAt;
     private UUID createdBy;
     private UUID updatedBy;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    // Kept as Instant to match the entity: LocalDateTime.from(Instant) throws DateTimeException
+    // at runtime because an Instant carries no local date or time fields.
+    private Instant createdAt;
+    private Instant updatedAt;
 
     public static ProposalResponse fromEntity(Proposal proposal) {
         return ProposalResponse.builder()
@@ -59,10 +60,8 @@ public class ProposalResponse {
                 .sentAt(proposal.getSentAt())
                 .createdBy(proposal.getCreatedBy())
                 .updatedBy(proposal.getUpdatedBy())
-                .createdAt(proposal.getCreatedAt() != null ?
-                    LocalDateTime.from(proposal.getCreatedAt()) : null)
-                .updatedAt(proposal.getUpdatedAt() != null ?
-                    LocalDateTime.from(proposal.getUpdatedAt()) : null)
+                .createdAt(proposal.getCreatedAt())
+                .updatedAt(proposal.getUpdatedAt())
                 .build();
     }
 }

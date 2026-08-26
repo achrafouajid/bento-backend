@@ -56,6 +56,8 @@ public class InvoiceService {
         invoice.setDealId(request.getDealId());
         invoice.setPurchaseOrderId(request.getPurchaseOrderId());
         invoice.setStatus(request.getStatus());
+        invoice.setInvoiceNumber(request.getInvoiceNumber());
+        invoice.setInvoiceDate(request.getInvoiceDate());
         invoice.setDueDate(request.getDueDate());
         invoice.setSentAt(request.getSentAt());
         invoice.setPaidAt(request.getPaidAt());
@@ -66,6 +68,7 @@ public class InvoiceService {
         invoice.setSubtotal(request.getSubtotal());
         invoice.setTax(request.getTax());
         invoice.setTotal(request.getTotal());
+        invoice.setLines(request.getLines());
     }
 
     @Transactional

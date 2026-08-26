@@ -97,3 +97,10 @@ whatsapp:
       zone: Africa/Casablanca
       start: 9
       end: 18
+
+partner:
+  purge:
+    # Soft-deleted partners stay restorable for this long, then the nightly job removes them
+    # for good. Shorten it in a test environment to exercise the purge without waiting a month.
+    retention-days: ${PARTNER_PURGE_RETENTION_DAYS:30}
+    cron: ${PARTNER_PURGE_CRON:0 0 3 * * *}

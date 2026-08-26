@@ -2,12 +2,15 @@ package com.bento.crm.task.service;
 
 import com.bento.crm.common.context.TenantContext;
 import com.bento.crm.common.exception.ResourceNotFoundException;
+import com.bento.crm.common.model.RelatedEntityType;
+import com.bento.crm.common.repository.EntityLinkSpecifications;
 import com.bento.crm.task.dto.CreateTaskRequest;
 import com.bento.crm.task.model.Task;
 import com.bento.crm.task.repository.TaskRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,6 +41,21 @@ public class TaskService {
         return taskRepository.findByOrganizationId(orgId, pageable);
     }
 
+    /**
+     * Lists the tasks attached to a given record, e.g. everything raised for one customer.
+     * Both filter arguments are optional; with neither set this is equivalent to
+     * {@link #listTasks(Pageable)}.
+     */
+    public Page<Task> listTasks(RelatedEntityType relatedEntityType, UUID relatedEntityId, Pageable pageable) {
+        if (relatedEntityType == null && relatedEntityId == null) {
+            return listTasks(pageable);
+        }
+        UUID orgId = TenantContext.getCurrentOrganizationId();
+        Specification<Task> spec = EntityLinkSpecifications.<Task>inOrganization(orgId)
+                .and(EntityLinkSpecifications.relatedTo(relatedEntityType, relatedEntityId));
+        return taskRepository.findAll(spec, pageable);
+    }
+
     @Transactional
     public Task updateTask(UUID id, CreateTaskRequest request) {
         Task task = getTask(id);
@@ -54,8 +72,7 @@ public class TaskService {
         task.setStatus(request.getStatus());
         task.setPriority(request.getPriority());
         task.setDueDate(request.getDueDate());
-        task.setRelatedEntityType(request.getRelatedEntityType());
-        task.setRelatedEntityId(request.getRelatedEntityId());
+        task.setRelatedEntity(request.toEntityLink());
     }
 
     @Transactional

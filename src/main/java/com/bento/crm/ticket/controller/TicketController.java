@@ -1,11 +1,13 @@
 package com.bento.crm.ticket.controller;
 
 import com.bento.crm.common.dto.PageResponse;
+import com.bento.crm.common.model.RelatedEntityType;
 import com.bento.crm.ticket.dto.CreateTicketRequest;
 import com.bento.crm.ticket.dto.TicketResponse;
 import com.bento.crm.ticket.model.Ticket;
 import com.bento.crm.ticket.service.TicketService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -46,9 +48,16 @@ public class TicketController {
 
     @GetMapping
     @PreAuthorize("hasAuthority('TICKETS_READ')")
-    @Operation(summary = "List tickets", description = "List all tickets in the organization")
-    public ResponseEntity<PageResponse<TicketResponse>> listTickets(Pageable pageable) {
-        Page<Ticket> page = ticketService.listTickets(pageable);
+    @Operation(summary = "List tickets",
+            description = "List tickets in the organization, optionally narrowed to those linked to a "
+                    + "given record (e.g. every ticket opened against one customer or deal).")
+    public ResponseEntity<PageResponse<TicketResponse>> listTickets(
+            @Parameter(description = "Only tickets linked to this kind of record")
+            @RequestParam(required = false) RelatedEntityType relatedEntityType,
+            @Parameter(description = "Only tickets linked to this record id")
+            @RequestParam(required = false) UUID relatedEntityId,
+            Pageable pageable) {
+        Page<Ticket> page = ticketService.listTickets(relatedEntityType, relatedEntityId, pageable);
         Page<TicketResponse> dtoPage = page.map(TicketResponse::fromEntity);
         return ResponseEntity.ok(PageResponse.fromPage(dtoPage));
     }

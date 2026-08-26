@@ -38,11 +38,13 @@ public abstract class BaseTenantEntity {
     @Column(nullable = false)
     private Instant updatedAt;
 
+    // Nullable, matching the migrations: records written before any user exists (the admin
+    // created during organization signup) have no auditor to attribute them to.
     @CreatedBy
-    @Column(nullable = false, updatable = false, columnDefinition = "uuid")
+    @Column(updatable = false, columnDefinition = "uuid")
     private UUID createdBy;
 
     @LastModifiedBy
-    @Column(nullable = false, columnDefinition = "uuid")
+    @Column(columnDefinition = "uuid")
     private UUID updatedBy;
 }

@@ -6,10 +6,14 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Entity
@@ -37,6 +41,16 @@ public class Invoice extends BaseTenantEntity {
     @Column(nullable = false)
     private Status status;
 
+    /** Human-facing document number, e.g. {@code FA-2026-0042}. */
+    private String invoiceNumber;
+
+    /**
+     * The date the document was issued, which is what the ledger sorts and reports on.
+     * Distinct from {@code createdAt}, so a back-dated invoice imported from an ERP lands in
+     * the right place.
+     */
+    private LocalDate invoiceDate;
+
     private LocalDate dueDate;
 
     private Instant sentAt;
@@ -57,6 +71,10 @@ public class Invoice extends BaseTenantEntity {
     private BigDecimal tax;
 
     private BigDecimal total;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
+    private List<Map<String, Object>> lines;
 
     public enum InvoiceType {
         CUSTOMER, VENDOR
