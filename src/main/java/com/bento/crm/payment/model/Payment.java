@@ -1,0 +1,56 @@
+package com.bento.crm.payment.model;
+
+import com.bento.crm.common.model.BaseTenantEntity;
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.UUID;
+
+/**
+ * A single settlement movement against a partner.
+ *
+ * <p>{@link #amount} is always positive. Whether the movement reads as a debit or a credit
+ * depends on which side of the relationship the partner sits on (receivable for customers,
+ * payable for vendors), so the sign is applied when the ledger is composed rather than baked
+ * into stored data.
+ */
+@Entity
+@Table(name = "payment")
+@Data
+@EqualsAndHashCode(callSuper = true)
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class Payment extends BaseTenantEntity {
+
+    @Column(nullable = false, columnDefinition = "uuid")
+    private UUID partnerId;
+
+    /** Null for an on-account payment not yet allocated to a specific invoice. */
+    @Column(columnDefinition = "uuid")
+    private UUID invoiceId;
+
+    @Column(nullable = false)
+    private LocalDate paymentDate;
+
+    @Column(nullable = false)
+    private BigDecimal amount;
+
+    @Enumerated(EnumType.STRING)
+    private Method method;
+
+    private String reference;
+
+    @Column(columnDefinition = "text")
+    private String notes;
+
+    public enum Method {
+        BANK_TRANSFER, CHECK, CASH, CARD, DIRECT_DEBIT, OTHER
+    }
+}

@@ -41,6 +41,16 @@ public class Invoice extends BaseTenantEntity {
     @Column(nullable = false)
     private Status status;
 
+    /** Human-facing document number, e.g. {@code FA-2026-0042}. */
+    private String invoiceNumber;
+
+    /**
+     * The date the document was issued, which is what the ledger sorts and reports on.
+     * Distinct from {@code createdAt}, so a back-dated invoice imported from an ERP lands in
+     * the right place.
+     */
+    private LocalDate invoiceDate;
+
     private LocalDate dueDate;
 
     private Instant sentAt;

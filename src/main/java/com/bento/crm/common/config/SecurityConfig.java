@@ -2,6 +2,7 @@ package com.bento.crm.common.config;
 
 import com.bento.crm.auth.filter.JwtAuthFilter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -23,7 +24,12 @@ public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
     private final TenantFilterInterceptor tenantFilterInterceptor;
-    private final RateLimitFilter rateLimitFilter;
+    /**
+     * Optional: {@link RateLimitFilter} is conditional on {@code app.rate-limit.enabled}, so
+     * turning rate limiting off (as the integration tests do) must leave the rest of the chain
+     * intact rather than failing context startup on a missing bean.
+     */
+    private final ObjectProvider<RateLimitFilter> rateLimitFilter;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -49,9 +55,11 @@ public class SecurityConfig {
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
-                .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(tenantFilterInterceptor, JwtAuthFilter.class);
+
+        rateLimitFilter.ifAvailable(filter ->
+                http.addFilterBefore(filter, UsernamePasswordAuthenticationFilter.class));
 
         return http.build();
     }

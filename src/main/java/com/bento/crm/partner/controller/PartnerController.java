@@ -1,6 +1,7 @@
 package com.bento.crm.partner.controller;
 
 import com.bento.crm.common.dto.PageResponse;
+import com.bento.crm.partner.dto.BatchDeleteRequest;
 import com.bento.crm.partner.dto.CreatePartnerRequest;
 import com.bento.crm.partner.dto.PartnerResponse;
 import com.bento.crm.partner.model.Partner;
@@ -16,6 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -78,9 +80,33 @@ public class PartnerController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('PARTNERS_DELETE')")
-    @Operation(summary = "Delete partner", description = "Delete partner record")
+    @Operation(summary = "Delete partner",
+            description = "Soft delete: the record leaves every listing but stays restorable until the retention window expires")
     public ResponseEntity<Void> deletePartner(@PathVariable UUID id) {
         partnerService.deletePartner(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/batch-delete")
+    @PreAuthorize("hasAuthority('PARTNERS_DELETE')")
+    @Operation(summary = "Batch delete partners", description = "Soft delete several partners in one call")
+    public ResponseEntity<Map<String, Integer>> batchDelete(@Valid @RequestBody BatchDeleteRequest request) {
+        int deleted = partnerService.batchDelete(request.getIds());
+        return ResponseEntity.ok(Map.of("deleted", deleted));
+    }
+
+    @PostMapping("/{id}/restore")
+    @PreAuthorize("hasAuthority('PARTNERS_DELETE')")
+    @Operation(summary = "Restore partner", description = "Undo a soft delete that has not yet been purged")
+    public ResponseEntity<PartnerResponse> restorePartner(@PathVariable UUID id) {
+        return ResponseEntity.ok(PartnerResponse.fromEntity(partnerService.restorePartner(id)));
+    }
+
+    @GetMapping("/deleted")
+    @PreAuthorize("hasAuthority('PARTNERS_DELETE')")
+    @Operation(summary = "List deleted partners", description = "Soft-deleted partners still inside the retention window")
+    public ResponseEntity<PageResponse<PartnerResponse>> listDeleted(Pageable pageable) {
+        Page<PartnerResponse> page = partnerService.listDeleted(pageable).map(PartnerResponse::fromEntity);
+        return ResponseEntity.ok(PageResponse.fromPage(page));
     }
 }

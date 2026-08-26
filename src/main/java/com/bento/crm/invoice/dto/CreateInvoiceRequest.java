@@ -31,6 +31,10 @@ public class CreateInvoiceRequest {
     @NotNull
     private Invoice.Status status;
 
+    private String invoiceNumber;
+
+    private LocalDate invoiceDate;
+
     private LocalDate dueDate;
 
     private Instant sentAt;

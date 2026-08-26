@@ -56,6 +56,8 @@ public class InvoiceService {
         invoice.setDealId(request.getDealId());
         invoice.setPurchaseOrderId(request.getPurchaseOrderId());
         invoice.setStatus(request.getStatus());
+        invoice.setInvoiceNumber(request.getInvoiceNumber());
+        invoice.setInvoiceDate(request.getInvoiceDate());
         invoice.setDueDate(request.getDueDate());
         invoice.setSentAt(request.getSentAt());
         invoice.setPaidAt(request.getPaidAt());

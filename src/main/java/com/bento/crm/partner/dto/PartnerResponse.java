@@ -94,6 +94,10 @@ public class PartnerResponse {
     @JsonProperty("updated_at")
     private Instant updatedAt;
 
+    /** Non-null only in the "recently deleted" listing; drives the restore/purge countdown. */
+    @JsonProperty("deleted_at")
+    private Instant deletedAt;
+
     public static PartnerResponse fromEntity(Partner partner) {
         return PartnerResponse.builder()
                 .id(partner.getId())
@@ -124,6 +128,7 @@ public class PartnerResponse {
                 .campaigns(partner.getCampaigns())
                 .notes(partner.getNotes())
                 .createdAt(partner.getCreatedAt())
+                .deletedAt(partner.getDeletedAt())
                 .updatedAt(partner.getUpdatedAt())
                 .build();
     }
