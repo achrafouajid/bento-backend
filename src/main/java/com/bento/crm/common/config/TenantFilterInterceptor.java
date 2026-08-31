@@ -77,6 +77,9 @@ public class TenantFilterInterceptor extends OncePerRequestFilter {
         return path.endsWith("/auth/login")
                 || path.endsWith("/auth/refresh")
                 || path.endsWith("/organizations")
+                // Invitation acceptance carries no JWT and therefore no org claim; the
+                // invitation token resolves the tenant instead.
+                || path.contains("/public/invitations")
                 || path.contains("/actuator/health")
                 || path.contains("/swagger-ui")
                 || path.contains("/openapi")

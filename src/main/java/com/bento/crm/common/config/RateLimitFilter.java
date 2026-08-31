@@ -49,6 +49,11 @@ public class RateLimitFilter extends OncePerRequestFilter {
             return rateLimitConfig.resolveAuthBucket(clientIp);
         } else if (path.endsWith("/organizations") && "POST".equalsIgnoreCase(method)) {
             return rateLimitConfig.resolveSignupBucket(clientIp);
+        } else if (path.contains("/public/invitations")) {
+            // Unauthenticated and account-creating, so it is bucketed separately from the
+            // general limit -- but not as tightly as signup, which a legitimate invitee would
+            // trip just by reloading the acceptance page.
+            return rateLimitConfig.resolveInvitationBucket(clientIp);
         } else {
             return rateLimitConfig.resolveBucket(clientIp);
         }

@@ -67,6 +67,23 @@ services:
       SERVER_PORT: 8080
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:4200,http://localhost:4201,http://localhost:3000}
+      # Outbound SMTP for invitation email, via Hostinger's relay. MAIL_PASSWORD is the
+      # mailbox password from hPanel, not the Hostinger account password. With MAIL_USERNAME
+      # unset the backend skips sending and logs the message instead, so a missing .env
+      # degrades to "no email" rather than a failed invite.
+      MAIL_HOST: ${MAIL_HOST:-smtp.hostinger.com}
+      MAIL_PORT: ${MAIL_PORT:-465}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_SSL: ${MAIL_SSL:-true}
+      MAIL_STARTTLS: ${MAIL_STARTTLS:-false}
+      MAIL_FROM: ${MAIL_FROM:-no-reply@crmbento.com}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-Bento CRM}
+      MAIL_REPLY_TO: ${MAIL_REPLY_TO:-}
+      MAIL_ENABLED: ${MAIL_ENABLED:-true}
+      # Must point at the frontend, which serves the /invite/accept route -- not at this API.
+      INVITATION_ACCEPT_URL: ${INVITATION_ACCEPT_URL:-https://crmbento.com/invite/accept}
+      INVITATION_EXPIRY_DAYS: ${INVITATION_EXPIRY_DAYS:-7}
     volumes:
       - ./uploads:/data/uploads
     healthcheck:
