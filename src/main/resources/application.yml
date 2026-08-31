@@ -76,6 +76,15 @@ management:
     web:
       exposure:
         include: health,metrics,prometheus
+  health:
+    # Setting spring.mail.host auto-registers a MailHealthIndicator that opens a live
+    # Transport.connect() to the relay on every /actuator/health probe. Hostinger's 465
+    # is slow or blocked from some VPS images and the mailbox credentials may not be wired
+    # yet, so that probe would make health return 503 and the container never goes healthy.
+    # Mail is a non-critical, best-effort dependency (sends are @Async and swallow failures),
+    # so it must not gate the deploy healthcheck.
+    mail:
+      enabled: false
   metrics:
     export:
       prometheus:
