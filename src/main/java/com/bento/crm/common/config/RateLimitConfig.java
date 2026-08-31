@@ -35,6 +35,22 @@ public class RateLimitConfig {
         );
     }
 
+    /**
+     * Looser than the signup bucket because the invitee legitimately hits it several times --
+     * a preview on page load, another after a reload, then the accept itself -- and an invitee
+     * may share an office IP with the admin who invited them. Brute-forcing a 256-bit token is
+     * infeasible regardless of the limit; this is depth, not the primary defence.
+     */
+    public Bucket resolveInvitationBucket(String ipAddress) {
+        String key = "invitation_rate_limit:" + ipAddress;
+        Bandwidth limit = Bandwidth.classic(30, Refill.intervally(30, Duration.ofHours(1)));
+        return cache.computeIfAbsent(key, k ->
+                Bucket.builder()
+                        .addLimit(limit)
+                        .build()
+        );
+    }
+
     public Bucket resolveSignupBucket(String ipAddress) {
         String key = "signup_rate_limit:" + ipAddress;
         Bandwidth limit = Bandwidth.classic(5, Refill.intervally(5, Duration.ofHours(1)));

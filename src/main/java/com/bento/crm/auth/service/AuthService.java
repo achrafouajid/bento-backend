@@ -53,6 +53,17 @@ public class AuthService {
             throw new AuthenticationFailedException("Invalid credentials");
         }
 
+        return issueSession(user);
+    }
+
+    /**
+     * Mints an access/refresh pair for a user whose identity has already been established by
+     * some means other than a password check. Shared with the invitation flow, which signs the
+     * invitee straight in after they set their password rather than bouncing them to a login
+     * form they would immediately fill with what they just typed.
+     */
+    @Transactional
+    public LoginResponse issueSession(AppUser user) {
         user.setLastActiveAt(Instant.now());
         userRepository.save(user);
 

@@ -40,6 +40,31 @@ spring:
   threads:
     virtual:
       enabled: true
+  mail:
+    # Hostinger's outbound relay. 465/SSL is used rather than 587/STARTTLS because Hostinger
+    # VPS images block outbound 587 by default on some plans, while 465 is always open.
+    host: ${MAIL_HOST:smtp.hostinger.com}
+    port: ${MAIL_PORT:465}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    protocol: smtp
+    default-encoding: UTF-8
+    properties:
+      mail:
+        smtp:
+          auth: true
+          # Implicit TLS on 465. When MAIL_PORT is set to 587 instead, flip these two:
+          # ssl.enable false, starttls.enable true.
+          ssl:
+            enable: ${MAIL_SSL:true}
+            trust: ${MAIL_HOST:smtp.hostinger.com}
+          starttls:
+            enable: ${MAIL_STARTTLS:false}
+          connectiontimeout: 10000
+          timeout: 10000
+          writetimeout: 10000
+        transport:
+          protocol: smtp
 
 server:
   servlet:
@@ -104,3 +129,19 @@ partner:
     # for good. Shorten it in a test environment to exercise the purge without waiting a month.
     retention-days: ${PARTNER_PURGE_RETENTION_DAYS:30}
     cron: ${PARTNER_PURGE_CRON:0 0 3 * * *}
+
+app:
+  mail:
+    # Must be a real mailbox on the sending domain -- Hostinger's relay rejects a From address
+    # it does not host, and a mismatched From fails DMARC alignment at the recipient.
+    from: ${MAIL_FROM:no-reply@crmbento.com}
+    from-name: ${MAIL_FROM_NAME:Bento CRM}
+    reply-to: ${MAIL_REPLY_TO:}
+    # With no SMTP username configured, sending is skipped and the message is logged instead,
+    # so local development needs no mail server and never emails a real person by accident.
+    enabled: ${MAIL_ENABLED:true}
+  invitation:
+    # Where the invitee lands. The accept page reads the token from the query string, so this
+    # must point at the deployed frontend, not the API.
+    accept-url: ${INVITATION_ACCEPT_URL:http://localhost:3000/invite/accept}
+    expiry-days: ${INVITATION_EXPIRY_DAYS:7}

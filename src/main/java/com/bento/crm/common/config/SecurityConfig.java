@@ -41,6 +41,11 @@ public class SecurityConfig {
                                 "/auth/login",
                                 "/auth/refresh",
                                 "/organizations",
+                                // The invitee has no account yet, so acceptance cannot require
+                                // a token. The invitation token is the credential -- see
+                                // PublicInvitationController.
+                                "/public/invitations",
+                                "/public/invitations/accept",
                                 "/actuator/health",
                                 "/swagger-ui.html",
                                 "/openapi/**",
