@@ -18,25 +18,20 @@ Ongoing use after setup: **`git push origin dev` deploys dev, `git push origin m
 
 ---
 
-## 0. One-time server bootstrap (unblocks deploys)
+## 0. Server git over HTTP/2 (already applied — background)
 
-The VPS checkouts under `/srv/bento/apps/` were sending a stale `github.com`
-credential, so `git fetch` inside `deploy.sh` started getting a 401 and failing
-every deploy with `could not read Username for 'https://github.com'`. The repos
-are public, so the new `deploy.sh` pulls anonymously — but the server still runs
-the *old* `deploy.sh` until it is pulled once by hand. SSH in and run:
+The box's git 2.43 / curl multiplexes `info/refs` and `git-upload-pack` onto one
+HTTP/2 connection, and GitHub 401s the POST — so `git fetch` inside `deploy.sh`
+failed on a *public* repo with `could not read Username for 'https://github.com'`.
+Fixed two ways (both already in place):
 
-```bash
-for d in /srv/bento/apps/crm /srv/bento/apps/crm-backend; do
-  cd "$d" || continue
-  git config --unset-all http."https://github.com/".extraheader 2>/dev/null || true
-  GIT_TERMINAL_PROMPT=0 git -c credential.helper= \
-    -c 'http.https://github.com/.extraheader=' pull --ff-only origin main
-done
-```
+- Server-wide: `git config --global http.version HTTP/1.1` (run as the `bento`
+  user on the VPS).
+- In `deploy.sh`: the `git_pub` wrapper pins `-c http.version=HTTP/1.1` for the
+  fetch/merge, so a fresh box works even before the global config is set.
 
-Then re-run the two failed workflows (`gh run rerun <id>` or the Actions tab, or
-just push again). Every deploy after that is self-healing.
+If a brand-new deploy ever fails again with that "could not read Username" error,
+re-apply the global setting.
 
 ## 1. DNS
 
