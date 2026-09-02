@@ -18,6 +18,26 @@ Ongoing use after setup: **`git push origin dev` deploys dev, `git push origin m
 
 ---
 
+## 0. One-time server bootstrap (unblocks deploys)
+
+The VPS checkouts under `/srv/bento/apps/` were sending a stale `github.com`
+credential, so `git fetch` inside `deploy.sh` started getting a 401 and failing
+every deploy with `could not read Username for 'https://github.com'`. The repos
+are public, so the new `deploy.sh` pulls anonymously — but the server still runs
+the *old* `deploy.sh` until it is pulled once by hand. SSH in and run:
+
+```bash
+for d in /srv/bento/apps/crm /srv/bento/apps/crm-backend; do
+  cd "$d" || continue
+  git config --unset-all http."https://github.com/".extraheader 2>/dev/null || true
+  GIT_TERMINAL_PROMPT=0 git -c credential.helper= \
+    -c 'http.https://github.com/.extraheader=' pull --ff-only origin main
+done
+```
+
+Then re-run the two failed workflows (`gh run rerun <id>` or the Actions tab, or
+just push again). Every deploy after that is self-healing.
+
 ## 1. DNS
 
 Add two A records pointing at the **same VPS IP as production**:
