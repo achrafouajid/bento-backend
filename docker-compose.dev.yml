@@ -1,0 +1,115 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: crm-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-crm_db}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set in .env}
+    # Loopback only, on a dev-specific port so it never collides with the prod
+    # postgres (127.0.0.1:5433). Reach it with: ssh -L 5434:127.0.0.1:5434 <host>
+    ports:
+      - "127.0.0.1:5434:5432"
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - crm-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: crm-redis-dev
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD must be set in .env}
+    # Dev-specific port so it never collides with the prod redis (127.0.0.1:6379).
+    ports:
+      - "127.0.0.1:6380:6379"
+    volumes:
+      - redis_data_dev:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - crm-network
+
+  app:
+    # CI deploys by `docker compose pull` with BACKEND_IMAGE_TAG set to the
+    # dev-<sha> tag GHCR just built; `build` keeps `docker compose up -d --build`
+    # working for local/manual use.
+    image: ghcr.io/achrafouajid/bento-backend-app:${BACKEND_IMAGE_TAG:-dev}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: crm-backend-dev
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-crm_db}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set in .env, at least 32 characters}
+      SERVER_PORT: 8080
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://dev.crmbento.com}
+      MAIL_HOST: ${MAIL_HOST:-smtp.hostinger.com}
+      MAIL_PORT: ${MAIL_PORT:-465}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_SSL: ${MAIL_SSL:-true}
+      MAIL_STARTTLS: ${MAIL_STARTTLS:-false}
+      MAIL_FROM: ${MAIL_FROM:-no-reply@crmbento.com}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-Bento CRM (dev)}
+      MAIL_REPLY_TO: ${MAIL_REPLY_TO:-}
+      MAIL_ENABLED: ${MAIL_ENABLED:-false}
+      # Points at the dev frontend, which serves the /invite/accept route.
+      INVITATION_ACCEPT_URL: ${INVITATION_ACCEPT_URL:-https://dev.crmbento.com/invite/accept}
+      INVITATION_EXPIRY_DAYS: ${INVITATION_EXPIRY_DAYS:-7}
+    volumes:
+      - ./uploads:/data/uploads
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/api/v1/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    networks:
+      - crm-network
+      - proxy
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=proxy"
+      - "traefik.http.routers.crm-backend-dev.rule=Host(`apidev.crmbento.com`)"
+      - "traefik.http.routers.crm-backend-dev.entrypoints=websecure"
+      - "traefik.http.routers.crm-backend-dev.tls=true"
+      - "traefik.http.routers.crm-backend-dev.tls.certresolver=letsencrypt"
+      - "traefik.http.services.crm-backend-dev.loadbalancer.server.port=8080"
+      - "traefik.http.services.crm-backend-dev.loadbalancer.healthcheck.path=/api/v1/actuator/health"
+      - "traefik.http.services.crm-backend-dev.loadbalancer.healthcheck.interval=15s"
+      - "traefik.http.services.crm-backend-dev.loadbalancer.healthcheck.timeout=5s"
+
+volumes:
+  postgres_data_dev:
+  redis_data_dev:
+
+networks:
+  crm-network:
+    driver: bridge
+  proxy:
+    external: true
