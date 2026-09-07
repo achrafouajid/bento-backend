@@ -1,6 +1,7 @@
 package com.bento.crm.proposal.controller;
 
 import com.bento.crm.common.dto.PageResponse;
+import com.bento.crm.proposal.dto.ProposalTemplateRequest;
 import com.bento.crm.proposal.model.ProposalTemplate;
 import com.bento.crm.proposal.service.ProposalTemplateService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -29,8 +30,8 @@ public class ProposalTemplateController {
     @PostMapping
     @PreAuthorize("hasAuthority('PROPOSALS_CREATE')")
     @Operation(summary = "Create proposal template", description = "Create a new reusable proposal template")
-    public ResponseEntity<ProposalTemplate> createTemplate(@Valid @RequestBody ProposalTemplate template) {
-        ProposalTemplate created = proposalTemplateService.createTemplate(template);
+    public ResponseEntity<ProposalTemplate> createTemplate(@Valid @RequestBody ProposalTemplateRequest request) {
+        ProposalTemplate created = proposalTemplateService.createTemplate(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
@@ -52,8 +53,8 @@ public class ProposalTemplateController {
     @PatchMapping("/{id}")
     @PreAuthorize("hasAuthority('PROPOSALS_WRITE')")
     @Operation(summary = "Update proposal template", description = "Update proposal template information")
-    public ResponseEntity<ProposalTemplate> updateTemplate(@PathVariable UUID id, @Valid @RequestBody ProposalTemplate updates) {
-        return ResponseEntity.ok(proposalTemplateService.updateTemplate(id, updates));
+    public ResponseEntity<ProposalTemplate> updateTemplate(@PathVariable UUID id, @Valid @RequestBody ProposalTemplateRequest request) {
+        return ResponseEntity.ok(proposalTemplateService.updateTemplate(id, request));
     }
 
     @DeleteMapping("/{id}")

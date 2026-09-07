@@ -28,6 +28,14 @@ public class OrganizationService {
 
     @Transactional
     public Organization createOrganization(CreateOrganizationRequest request) {
+        // Signup is unauthenticated, so reject an address that is already registered anywhere.
+        // Without this an attacker could create an organization under a customer's email and add
+        // a second account resolvable by the cross-tenant login lookup.
+        String adminEmail = request.getAdminEmail().trim().toLowerCase();
+        if (!userRepository.findAllByEmailAcrossOrganizations(adminEmail).isEmpty()) {
+            throw new IllegalStateException("An account with this email already exists");
+        }
+
         Organization organization = Organization.builder()
                 .name(request.getName())
                 .industry(request.getIndustry())
@@ -42,7 +50,7 @@ public class OrganizationService {
         TenantContext.setCurrentOrganizationId(organization.getId());
 
         AppUser adminUser = AppUser.builder()
-                .email(request.getAdminEmail())
+                .email(adminEmail)
                 .passwordHash(passwordEncoder.encode(request.getAdminPassword()))
                 .displayName(request.getAdminName())
                 .role(UserRole.ADMIN)
@@ -55,7 +63,7 @@ public class OrganizationService {
         userRepository.save(adminUser);
         TenantContext.clear();
 
-        log.info("Organization created: {} with admin user: {}", organization.getId(), request.getAdminEmail());
+        log.info("Organization created: {} with admin user: {}", organization.getId(), adminEmail);
         return organization;
     }
 

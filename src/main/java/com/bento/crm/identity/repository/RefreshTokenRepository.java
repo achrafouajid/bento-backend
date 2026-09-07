@@ -24,4 +24,19 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID
     @Modifying
     @Query("UPDATE RefreshToken rt SET rt.revokedAt = :now WHERE rt.userId = :userId AND rt.revokedAt IS NULL")
     void revokeAllForUser(@Param("userId") UUID userId, @Param("now") Instant now);
+
+    /**
+     * Looks a token up regardless of whether it is still valid.
+     *
+     * <p>Needed for reuse detection: a token that is expired or already revoked must be
+     * distinguishable from one that never existed, because replaying a revoked token is the
+     * signature of a stolen refresh token and has to invalidate the whole family.
+     */
+    @Query("SELECT rt FROM RefreshToken rt WHERE rt.tokenHash = :tokenHash")
+    Optional<RefreshToken> findByTokenHash(@Param("tokenHash") String tokenHash);
+
+    /** Housekeeping for {@link com.bento.crm.identity.service.RefreshTokenPurgeScheduler}. */
+    @Modifying
+    @Query("DELETE FROM RefreshToken rt WHERE rt.expiresAt < :cutoff")
+    int deleteExpiredBefore(@Param("cutoff") Instant cutoff);
 }

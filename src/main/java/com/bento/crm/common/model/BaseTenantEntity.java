@@ -15,7 +15,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 @MappedSuperclass
-@EntityListeners(AuditingEntityListener.class)
+@EntityListeners({AuditingEntityListener.class, TenantEntityListener.class})
 @FilterDef(name = "organizationFilter", parameters = @org.hibernate.annotations.ParamDef(name = "organizationId", type = java.util.UUID.class))
 @Filter(name = "organizationFilter", condition = "organization_id = :organizationId")
 @Getter

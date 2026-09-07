@@ -89,6 +89,11 @@ public enum Permission {
     GROUPS_WRITE("GROUPS_WRITE"),
     GROUPS_DELETE("GROUPS_DELETE"),
 
+    // File attachment permissions. Files hang off other entities (partners, deals, tickets,
+    // tasks), so there is no separate _DELETE: removing an attachment is part of write access.
+    FILES_READ("FILES_READ"),
+    FILES_WRITE("FILES_WRITE"),
+
     // Analytics
     ANALYTICS_READ("ANALYTICS_READ"),
 
@@ -114,6 +119,7 @@ public enum Permission {
                     USERS_READ, USERS_WRITE,
                     TEAMS_READ, TEAMS_WRITE, TEAMS_CREATE, TEAMS_DELETE,
                     GROUPS_READ, GROUPS_CREATE, GROUPS_WRITE, GROUPS_DELETE,
+                    FILES_READ, FILES_WRITE,
                     ANALYTICS_READ,
                     ADMIN_ACCESS
             );
@@ -131,6 +137,7 @@ public enum Permission {
                     AUTOMATION_RULES_READ, AUTOMATION_RULES_CREATE, AUTOMATION_RULES_WRITE,
                     USERS_READ, TEAMS_READ, TEAMS_WRITE,
                     GROUPS_READ, GROUPS_CREATE, GROUPS_WRITE,
+                    FILES_READ, FILES_WRITE,
                     ANALYTICS_READ
             );
             case SALESPERSON -> Set.of(
@@ -140,6 +147,7 @@ public enum Permission {
                     PROPOSALS_READ, PROPOSALS_CREATE, PROPOSALS_WRITE,
                     TASKS_READ, TASKS_CREATE, TASKS_WRITE,
                     GROUPS_READ,
+                    FILES_READ, FILES_WRITE,
                     ANALYTICS_READ
             );
             case SUPPORT -> Set.of(
@@ -147,11 +155,14 @@ public enum Permission {
                     TICKETS_READ, TICKETS_CREATE, TICKETS_WRITE,
                     TASKS_READ, TASKS_CREATE, TASKS_WRITE,
                     GROUPS_READ,
+                    FILES_READ, FILES_WRITE,
                     ANALYTICS_READ
             );
             case VIEWER -> Set.of(
                     PARTNERS_READ, DEALS_READ, DEAL_ACTIVITIES_READ, PROPOSALS_READ,
-                    TICKETS_READ, TASKS_READ, GROUPS_READ, ANALYTICS_READ
+                    TICKETS_READ, TASKS_READ, GROUPS_READ,
+                    FILES_READ,
+                    ANALYTICS_READ
             );
         };
     }

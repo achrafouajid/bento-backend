@@ -2,6 +2,7 @@ package com.bento.crm.proposal.service;
 
 import com.bento.crm.common.context.TenantContext;
 import com.bento.crm.common.exception.ResourceNotFoundException;
+import com.bento.crm.proposal.dto.ProposalTemplateRequest;
 import com.bento.crm.proposal.model.ProposalTemplate;
 import com.bento.crm.proposal.repository.ProposalTemplateRepository;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +20,9 @@ public class ProposalTemplateService {
     private final ProposalTemplateRepository proposalTemplateRepository;
 
     @Transactional
-    public ProposalTemplate createTemplate(ProposalTemplate template) {
+    public ProposalTemplate createTemplate(ProposalTemplateRequest request) {
+        ProposalTemplate template = new ProposalTemplate();
+        request.applyTo(template);
         template.setOrganizationId(TenantContext.getCurrentOrganizationId());
         return proposalTemplateRepository.save(template);
     }
@@ -36,13 +39,9 @@ public class ProposalTemplateService {
     }
 
     @Transactional
-    public ProposalTemplate updateTemplate(UUID id, ProposalTemplate updates) {
+    public ProposalTemplate updateTemplate(UUID id, ProposalTemplateRequest request) {
         ProposalTemplate template = getTemplate(id);
-        template.setName(updates.getName());
-        template.setSubject(updates.getSubject());
-        template.setBody(updates.getBody());
-        template.setChannel(updates.getChannel());
-        template.setLines(updates.getLines());
+        request.applyTo(template);
         return proposalTemplateRepository.save(template);
     }
 

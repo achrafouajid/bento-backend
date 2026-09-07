@@ -18,6 +18,15 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class JwtService {
 
+    /**
+     * Claim that separates the two token kinds. Both are signed with the same key, so without
+     * it a refresh token — which lives for 30 days — is indistinguishable from a 15-minute
+     * access token and would authenticate any request that only requires {@code authenticated()}.
+     */
+    public static final String CLAIM_TOKEN_TYPE = "typ";
+    public static final String TYPE_ACCESS = "access";
+    public static final String TYPE_REFRESH = "refresh";
+
     private final JwtProperties jwtProperties;
 
     public String generateAccessToken(UUID userId, UUID organizationId, UserRole role) {
@@ -25,6 +34,7 @@ public class JwtService {
 
         return Jwts.builder()
                 .setSubject(userId.toString())
+                .claim(CLAIM_TOKEN_TYPE, TYPE_ACCESS)
                 .claim("org", organizationId.toString())
                 .claim("role", role.name())
                 .claim("authorities", permissions.stream()
@@ -39,6 +49,7 @@ public class JwtService {
     public String generateRefreshToken(UUID userId, UUID organizationId) {
         return Jwts.builder()
                 .setSubject(userId.toString())
+                .claim(CLAIM_TOKEN_TYPE, TYPE_REFRESH)
                 .claim("org", organizationId.toString())
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + jwtProperties.getRefreshTokenExpiry()))
@@ -47,26 +58,40 @@ public class JwtService {
     }
 
     public UUID extractUserId(String token) {
-        Claims claims = extractAllClaims(token);
+        Claims claims = parseAccessToken(token);
         return UUID.fromString(claims.getSubject());
     }
 
     public UUID extractOrganizationId(String token) {
-        Claims claims = extractAllClaims(token);
+        Claims claims = parseAccessToken(token);
         String orgId = claims.get("org", String.class);
         return UUID.fromString(orgId);
     }
 
-    public boolean isTokenValid(String token) {
+    /**
+     * Parses and validates an access token, rejecting anything that is not one.
+     *
+     * @throws io.jsonwebtoken.JwtException if the signature, expiry or token type is wrong
+     */
+    public Claims parseAccessToken(String token) {
+        Claims claims = parseAllClaims(token);
+        String type = claims.get(CLAIM_TOKEN_TYPE, String.class);
+        if (!TYPE_ACCESS.equals(type)) {
+            throw new io.jsonwebtoken.JwtException("Not an access token");
+        }
+        return claims;
+    }
+
+    /** Same as {@link #parseAccessToken} but returns null instead of throwing. */
+    public Claims tryParseAccessToken(String token) {
         try {
-            extractAllClaims(token);
-            return true;
+            return parseAccessToken(token);
         } catch (Exception e) {
-            return false;
+            return null;
         }
     }
 
-    private Claims extractAllClaims(String token) {
+    private Claims parseAllClaims(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(jwtProperties.getSecretKey())
                 .build()

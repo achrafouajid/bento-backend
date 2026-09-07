@@ -33,6 +33,14 @@ spring:
       pageable:
         default-page-size: 200
         max-page-size: 1000
+  servlet:
+    multipart:
+      # The application enforces a 15 MB ceiling in LocalFileStorageService; keep the container
+      # limit just above it so an oversized upload reaches that check and returns the app's 400
+      # instead of failing earlier. Without these keys the Spring Boot default is 1 MB and any
+      # upload over 1 MB blows up before the controller runs.
+      max-file-size: 16MB
+      max-request-size: 20MB
   jackson:
     serialization:
       write-dates-as-timestamps: false
@@ -70,6 +78,13 @@ server:
   servlet:
     context-path: /api/v1
   port: ${SERVER_PORT:8080}
+  # The app only ever receives connections from Traefik on the internal Docker network, which
+  # appends the real client to X-Forwarded-For. "native" enables Tomcat's RemoteIpValve with its
+  # default internal-proxies range (10/8, 172.16/12, 192.168/16, loopback), so X-Forwarded-For is
+  # honoured only when the immediate peer is one of those and request.getRemoteAddr() is rewritten
+  # to the true client IP. A client-supplied X-Forwarded-For can no longer forge the address the
+  # rate limiter buckets on.
+  forward-headers-strategy: native
 
 management:
   endpoints:
