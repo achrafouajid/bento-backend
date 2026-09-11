@@ -5,16 +5,20 @@ import com.bento.crm.common.exception.ResourceNotFoundException;
 import com.bento.crm.common.model.EntityLink;
 import com.bento.crm.common.model.RelatedEntityType;
 import com.bento.crm.common.repository.EntityLinkSpecifications;
+import com.bento.crm.notification.event.AssignmentNotificationFactory;
 import com.bento.crm.ticket.dto.CreateTicketRequest;
 import com.bento.crm.ticket.model.Ticket;
 import com.bento.crm.ticket.repository.TicketRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -22,13 +26,17 @@ import java.util.UUID;
 public class TicketService {
 
     private final TicketRepository ticketRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public Ticket createTicket(CreateTicketRequest request) {
         Ticket ticket = new Ticket();
         applyRequest(ticket, request);
-        ticket.setOrganizationId(TenantContext.getCurrentOrganizationId());
-        return ticketRepository.save(ticket);
+        UUID orgId = TenantContext.getCurrentOrganizationId();
+        ticket.setOrganizationId(orgId);
+        Ticket saved = ticketRepository.save(ticket);
+        notifyIfAssigned(orgId, null, saved);
+        return saved;
     }
 
     public Ticket getTicket(UUID id) {
@@ -60,8 +68,31 @@ public class TicketService {
     @Transactional
     public Ticket updateTicket(UUID id, CreateTicketRequest request) {
         Ticket ticket = getTicket(id);
+        UUID previousAssignee = ticket.getAssignedToUserId();
         applyRequest(ticket, request);
-        return ticketRepository.save(ticket);
+        Ticket saved = ticketRepository.save(ticket);
+        notifyIfAssigned(saved.getOrganizationId(), previousAssignee, saved);
+        return saved;
+    }
+
+    private void notifyIfAssigned(UUID orgId, UUID previousAssignee, Ticket ticket) {
+        UUID current = ticket.getAssignedToUserId();
+        if (current == null || Objects.equals(current, previousAssignee)) {
+            return;
+        }
+        eventPublisher.publishEvent(AssignmentNotificationFactory.forTicket(
+                orgId, current, currentActor(), ticket.getId(), ticket.getTitle()));
+    }
+
+    private static UUID currentActor() {
+        try {
+            Object principal = SecurityContextHolder.getContext().getAuthentication() != null
+                    ? SecurityContextHolder.getContext().getAuthentication().getPrincipal()
+                    : null;
+            return principal instanceof String s ? UUID.fromString(s) : null;
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private void applyRequest(Ticket ticket, CreateTicketRequest request) {
