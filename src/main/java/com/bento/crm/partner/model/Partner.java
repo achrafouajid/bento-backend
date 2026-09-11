@@ -95,6 +95,16 @@ public class Partner extends BaseTenantEntity {
     private String notes;
 
     /**
+     * Stable bot-provided identity (e.g. sha1 of normalized profile URL).
+     * NULL for hand-entered rows; unique per organization when present.
+     */
+    private String externalId;
+
+    /** Raw profile URL the lead was scraped from, for operator traceability. */
+    @Column(columnDefinition = "text")
+    private String sourceUrl;
+
+    /**
      * Set when the record is removed. Soft-deleted partners are hidden from every list but stay
      * restorable for a grace period, after which {@code PartnerPurgeScheduler} removes them for
      * good.

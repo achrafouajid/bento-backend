@@ -12,8 +12,6 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
@@ -23,28 +21,45 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
  * real signup -> login flow (rather than @WithMockUser) exercises the actual JWT/authority wiring,
  * which is what caught bugs like the broken /auth/refresh contract and the Partner response casing
  * mismatch during this audit.
+ *
+ * <p><b>Singleton container pattern.</b> The containers are {@code static} and started once from a
+ * static initialiser, with no {@code @Testcontainers}/{@code @Container} lifecycle management.
+ * Those annotations stop static containers in {@code afterAll} of <em>each</em> test class, but
+ * Spring caches the application context (identical config across the suite) and keeps pointing it
+ * at the now-dead port — which is why every class after the first failed with
+ * "Could not open JPA EntityManager". Started once and left running (Ryuk reaps them when the JVM
+ * exits), one Postgres and one Redis serve the whole suite and the cached context stays valid.
+ *
+ * <p>The schema is built by <b>Flyway running the real migrations</b>, then Hibernate is left on
+ * {@code ddl-auto=validate} — the production setting. A mismatch between an entity and a migration
+ * now fails a test instead of only surfacing at production startup.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
-@Testcontainers
 @TestPropertySource(properties = {
-        "spring.jpa.hibernate.ddl-auto=create-drop",
+        "spring.flyway.enabled=true",
+        "spring.jpa.hibernate.ddl-auto=validate",
         "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect",
-        "spring.flyway.enabled=false",
         "app.rate-limit.enabled=false",
         "JWT_SECRET=test-only-secret-key-not-for-production-use-minimum-32-bytes"
 })
 public abstract class IntegrationTestBase {
 
-    @Container
-    public static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine")
-            .withDatabaseName("crm_test_db")
-            .withUsername("postgres")
-            .withPassword("postgres");
+    public static final PostgreSQLContainer<?> postgres;
+    public static final GenericContainer<?> redis;
 
-    @Container
-    public static GenericContainer<?> redis = new GenericContainer<>("redis:7-alpine")
-            .withExposedPorts(6379);
+    static {
+        // Match the production/dev image (docker-compose*.yml) so schema behaviour the tests
+        // verify is the behaviour that will run in production.
+        postgres = new PostgreSQLContainer<>("postgres:15-alpine")
+                .withDatabaseName("crm_test_db")
+                .withUsername("postgres")
+                .withPassword("postgres");
+        redis = new GenericContainer<>("redis:7-alpine")
+                .withExposedPorts(6379);
+        postgres.start();
+        redis.start();
+    }
 
     // Testcontainers assigns random host ports, so the datasource/redis coordinates baked into
     // application.yml (localhost:5432/6379) never match. Without this, Spring silently falls

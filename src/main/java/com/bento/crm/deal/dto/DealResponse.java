@@ -10,6 +10,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -48,6 +49,7 @@ public class DealResponse {
     private String purchaseOrderRef;
     private String warehouseAddress;
     private String transportationService;
+    private List<OrderLineDto> orderLines;
     private UUID createdBy;
     private UUID updatedBy;
     private LocalDateTime createdAt;
@@ -85,6 +87,7 @@ public class DealResponse {
                 .purchaseOrderRef(deal.getPurchaseOrderRef())
                 .warehouseAddress(deal.getWarehouseAddress())
                 .transportationService(deal.getTransportationService())
+                .orderLines(deal.getOrderLines().stream().map(OrderLineDto::fromEntity).toList())
                 .createdBy(deal.getCreatedBy())
                 .updatedBy(deal.getUpdatedBy())
                 .createdAt(deal.getCreatedAt() != null ?

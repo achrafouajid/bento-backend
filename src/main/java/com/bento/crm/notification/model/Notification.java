@@ -38,7 +38,7 @@ public class Notification extends BaseTenantEntity {
     private Boolean isRead;
 
     public enum NotificationType {
-        DEAL, TASK, TICKET, SYSTEM, MENTION,
+        DEAL, LEAD, TASK, TICKET, SYSTEM, MENTION,
         /** A contact replied to a WhatsApp campaign message. */
         WHATSAPP
     }

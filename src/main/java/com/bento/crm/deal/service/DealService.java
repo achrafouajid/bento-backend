@@ -4,6 +4,7 @@ import com.bento.crm.common.context.TenantContext;
 import com.bento.crm.common.exception.ResourceNotFoundException;
 import com.bento.crm.deal.dto.CreateDealRequest;
 import com.bento.crm.deal.model.Deal;
+import com.bento.crm.deal.model.DealOrderLine;
 import com.bento.crm.deal.repository.DealRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -22,8 +23,8 @@ public class DealService {
     @Transactional
     public Deal createDeal(CreateDealRequest request) {
         Deal deal = new Deal();
-        applyRequest(deal, request);
         deal.setOrganizationId(TenantContext.getCurrentOrganizationId());
+        applyRequest(deal, request);
         return dealRepository.save(deal);
     }
 
@@ -46,6 +47,19 @@ public class DealService {
     }
 
     private void applyRequest(Deal deal, CreateDealRequest request) {
+        if (request.getOrderLines() != null) {
+            deal.replaceOrderLines(request.getOrderLines().stream()
+                    .map(l -> DealOrderLine.builder()
+                            .product(l.getProduct())
+                            .description(l.getDescription())
+                            .qty(l.getQty())
+                            .unitPrice(l.getUnitPrice())
+                            .discount(l.getDiscount())
+                            .total(l.effectiveTotal())
+                            .vendor(l.getVendor())
+                            .build())
+                    .toList());
+        }
         deal.setPartnerId(request.getPartnerId());
         deal.setProposalId(request.getProposalId());
         deal.setTitle(request.getTitle());

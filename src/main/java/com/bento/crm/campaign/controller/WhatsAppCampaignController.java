@@ -23,7 +23,10 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * WhatsApp-specific campaign operations for the /marketing route.
+ * Campaign operations for the /marketing route. Creation, launch, and relance management are
+ * WhatsApp-specific (the only channel with a real send path today), but the recipient endpoints
+ * ({@code /recipients}, {@code /stats}) are channel-agnostic and back the audience-builder on
+ * every campaign's detail page, Email and SMS included.
  */
 @RestController
 @RequestMapping("/campaigns")
@@ -58,17 +61,28 @@ public class WhatsAppCampaignController {
 
     @PostMapping("/{id}/recipients")
     @PreAuthorize("hasAuthority('CAMPAIGNS_WRITE')")
-    @Operation(summary = "Add more contacts to an existing campaign")
+    @Operation(summary = "Add contacts to a campaign's audience",
+            description = "Enrols the given partners as recipients, resolving each one's contact detail for the "
+                    + "campaign's own channel (phone for WhatsApp/SMS, email for Email). Already-enrolled "
+                    + "partners are left as they are.")
     public ResponseEntity<List<CampaignRecipientResponse>> addRecipients(@PathVariable UUID id,
                                                                         @RequestBody Map<String, List<UUID>> body) {
         UUID orgId = TenantContext.getCurrentOrganizationId();
-        launchService.addRecipients(orgId, id, body.getOrDefault("partnerIds", List.of()));
+        recipientService.enroll(orgId, id, body.getOrDefault("partnerIds", List.of()));
         return ResponseEntity.ok(recipientService.listRecipients(orgId, id));
+    }
+
+    @DeleteMapping("/{id}/recipients/{recipientId}")
+    @PreAuthorize("hasAuthority('CAMPAIGNS_WRITE')")
+    @Operation(summary = "Remove one contact from a campaign's audience")
+    public ResponseEntity<Void> removeRecipient(@PathVariable UUID id, @PathVariable UUID recipientId) {
+        recipientService.remove(TenantContext.getCurrentOrganizationId(), id, recipientId);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{id}/recipients")
     @PreAuthorize("hasAuthority('CAMPAIGNS_READ')")
-    @Operation(summary = "Per-recipient delivery and reply status")
+    @Operation(summary = "A campaign's audience, with delivery and reply status where the channel tracks it")
     public ResponseEntity<List<CampaignRecipientResponse>> recipients(@PathVariable UUID id) {
         UUID orgId = TenantContext.getCurrentOrganizationId();
         return ResponseEntity.ok(recipientService.listRecipients(orgId, id));

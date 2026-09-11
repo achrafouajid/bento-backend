@@ -2,6 +2,8 @@ package com.bento.crm.notification.service;
 
 import com.bento.crm.common.context.TenantContext;
 import com.bento.crm.common.exception.ResourceNotFoundException;
+import com.bento.crm.identity.repository.AppUserRepository;
+import com.bento.crm.notification.dto.CreateNotificationRequest;
 import com.bento.crm.notification.model.Notification;
 import com.bento.crm.notification.repository.NotificationRepository;
 import org.springframework.data.domain.Page;
@@ -16,9 +18,12 @@ import java.util.UUID;
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
+    private final AppUserRepository userRepository;
 
-    public NotificationService(NotificationRepository notificationRepository) {
+    public NotificationService(NotificationRepository notificationRepository,
+                               AppUserRepository userRepository) {
         this.notificationRepository = notificationRepository;
+        this.userRepository = userRepository;
     }
 
     private static UUID getCurrentUserId() {
@@ -30,9 +35,18 @@ public class NotificationService {
         return notificationRepository.findByRecipient(orgId, getCurrentUserId(), pageable);
     }
 
+    /**
+     * Creates a notification for a recipient in the caller's own organization.
+     *
+     * <p>The recipient is resolved against the tenant rather than trusted from the body, so a
+     * notification can never be addressed into another organization's inbox.
+     */
     @Transactional
-    public Notification create(Notification notification) {
-        return createForOrganization(TenantContext.getCurrentOrganizationId(), notification);
+    public Notification create(CreateNotificationRequest request) {
+        UUID orgId = TenantContext.getCurrentOrganizationId();
+        userRepository.findByOrganizationIdAndId(orgId, request.getRecipientUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("Recipient user not found"));
+        return createForOrganization(orgId, request.toEntity());
     }
 
     /**

@@ -88,6 +88,12 @@ public class PartnerResponse {
 
     private String notes;
 
+    @JsonProperty("external_id")
+    private String externalId;
+
+    @JsonProperty("source_url")
+    private String sourceUrl;
+
     @JsonProperty("created_at")
     private Instant createdAt;
 
@@ -127,6 +133,8 @@ public class PartnerResponse {
                 .productInterests(partner.getProductInterests())
                 .campaigns(partner.getCampaigns())
                 .notes(partner.getNotes())
+                .externalId(partner.getExternalId())
+                .sourceUrl(partner.getSourceUrl())
                 .createdAt(partner.getCreatedAt())
                 .deletedAt(partner.getDeletedAt())
                 .updatedAt(partner.getUpdatedAt())

@@ -6,33 +6,37 @@ import io.github.bucket4j.Refill;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 public class RateLimitConfig {
 
-    private final Map<String, Bucket> cache = new ConcurrentHashMap<>();
+    /**
+     * Buckets are held in memory keyed by client IP. The key space is bounded in practice now
+     * that {@code server.forward-headers-strategy=native} stops a spoofed {@code X-Forwarded-For}
+     * from minting a fresh key per request, but an access-ordered LRU with a hard cap is kept as
+     * defence in depth: under a distributed flood the map can never grow without limit, and
+     * evicting an idle bucket only costs that IP a counter reset.
+     */
+    private static final int MAX_TRACKED_KEYS = 100_000;
 
-    public Bucket resolveBucket(String key) {
-        return cache.computeIfAbsent(key, k -> createNewBucket());
-    }
+    private final Map<String, Bucket> cache = Collections.synchronizedMap(
+            new LinkedHashMap<>(16, 0.75f, true) {
+                @Override
+                protected boolean removeEldestEntry(Map.Entry<String, Bucket> eldest) {
+                    return size() > MAX_TRACKED_KEYS;
+                }
+            });
 
-    private Bucket createNewBucket() {
-        Bandwidth limit = Bandwidth.classic(100, Refill.intervally(100, Duration.ofMinutes(1)));
-        return Bucket.builder()
-                .addLimit(limit)
-                .build();
+    /** General per-IP limit for everything that is not login, signup or invitation. */
+    public Bucket resolveBucket(String ipAddress) {
+        return bucketFor("general:" + ipAddress, 100, Duration.ofMinutes(1));
     }
 
     public Bucket resolveAuthBucket(String ipAddress) {
-        String key = "auth_rate_limit:" + ipAddress;
-        Bandwidth limit = Bandwidth.classic(10, Refill.intervally(10, Duration.ofMinutes(1)));
-        return cache.computeIfAbsent(key, k ->
-                Bucket.builder()
-                        .addLimit(limit)
-                        .build()
-        );
+        return bucketFor("auth:" + ipAddress, 10, Duration.ofMinutes(1));
     }
 
     /**
@@ -42,22 +46,16 @@ public class RateLimitConfig {
      * infeasible regardless of the limit; this is depth, not the primary defence.
      */
     public Bucket resolveInvitationBucket(String ipAddress) {
-        String key = "invitation_rate_limit:" + ipAddress;
-        Bandwidth limit = Bandwidth.classic(30, Refill.intervally(30, Duration.ofHours(1)));
-        return cache.computeIfAbsent(key, k ->
-                Bucket.builder()
-                        .addLimit(limit)
-                        .build()
-        );
+        return bucketFor("invitation:" + ipAddress, 30, Duration.ofHours(1));
     }
 
     public Bucket resolveSignupBucket(String ipAddress) {
-        String key = "signup_rate_limit:" + ipAddress;
-        Bandwidth limit = Bandwidth.classic(5, Refill.intervally(5, Duration.ofHours(1)));
-        return cache.computeIfAbsent(key, k ->
-                Bucket.builder()
-                        .addLimit(limit)
-                        .build()
-        );
+        return bucketFor("signup:" + ipAddress, 5, Duration.ofHours(1));
+    }
+
+    private Bucket bucketFor(String key, long capacity, Duration window) {
+        return cache.computeIfAbsent(key, k -> Bucket.builder()
+                .addLimit(Bandwidth.classic(capacity, Refill.intervally(capacity, window)))
+                .build());
     }
 }

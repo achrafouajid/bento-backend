@@ -40,6 +40,14 @@ public class WhatsAppWebhookController {
     @Value("${whatsapp.meta.app-secret:}")
     private String appSecret;
 
+    /**
+     * Escape hatch for local development and the mock setup, where no Meta app secret exists yet.
+     * Defaults to {@code false} so a production deployment that forgets to set the secret rejects
+     * every inbound call instead of trusting unsigned bodies.
+     */
+    @Value("${whatsapp.meta.allow-unsigned-webhooks:false}")
+    private boolean allowUnsignedWebhooks;
+
     @Value("${whatsapp.meta.verify-token:bento-verify}")
     private String verifyToken;
 
@@ -89,14 +97,17 @@ public class WhatsAppWebhookController {
     /**
      * Verifies Meta's HMAC-SHA256 over the raw body.
      *
-     * <p>With no secret configured — the mock setup, before a Meta app exists —
-     * verification is skipped so the flow is testable, and a warning is logged so
-     * this cannot quietly persist into production.
+     * <p>With no secret configured the webhook is unauthenticated and is rejected, unless
+     * {@code whatsapp.meta.allow-unsigned-webhooks=true} is set explicitly (local/mock only).
      */
     private boolean signatureValid(byte[] rawBody, String signature) {
         if (appSecret == null || appSecret.isBlank()) {
-            log.warn("[wa-hook] whatsapp.meta.app-secret is not set: accepting webhook without signature check");
-            return true;
+            if (allowUnsignedWebhooks) {
+                log.warn("[wa-hook] app-secret unset and allow-unsigned-webhooks=true: accepting without signature check");
+                return true;
+            }
+            log.error("[wa-hook] app-secret unset and allow-unsigned-webhooks=false: rejecting webhook");
+            return false;
         }
         if (signature == null || !signature.startsWith("sha256=")) {
             return false;

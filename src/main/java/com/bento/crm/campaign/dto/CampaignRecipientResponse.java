@@ -21,6 +21,7 @@ public class CampaignRecipientResponse {
     private String partnerName;
     private UUID conversationId;
     private String phone;
+    private String email;
     private String status;
     private Instant sentAt;
     private Instant deliveredAt;
@@ -42,6 +43,7 @@ public class CampaignRecipientResponse {
                 .partnerName(partnerName)
                 .conversationId(r.getConversationId())
                 .phone(r.getPhoneE164())
+                .email(r.getEmail())
                 .status(r.getStatus().name())
                 .sentAt(r.getSentAt())
                 .deliveredAt(r.getDeliveredAt())

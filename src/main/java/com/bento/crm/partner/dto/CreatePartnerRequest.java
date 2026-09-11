@@ -69,4 +69,10 @@ public class CreatePartnerRequest {
     private List<Map<String, Object>> campaigns;
 
     private String notes;
+
+    @JsonProperty("external_id")
+    private String externalId;
+
+    @JsonProperty("source_url")
+    private String sourceUrl;
 }

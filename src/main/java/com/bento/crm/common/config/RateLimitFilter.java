@@ -60,10 +60,10 @@ public class RateLimitFilter extends OncePerRequestFilter {
     }
 
     private String getClientIp(HttpServletRequest request) {
-        String xForwardedFor = request.getHeader("X-Forwarded-For");
-        if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
-            return xForwardedFor.split(",")[0].trim();
-        }
+        // getRemoteAddr() is authoritative here: server.forward-headers-strategy=native has
+        // Tomcat's RemoteIpValve resolve it from X-Forwarded-For, but only when the request
+        // actually arrived through a trusted internal proxy. Parsing the header again in this
+        // filter would reopen the spoofing hole, since any client can send the header.
         return request.getRemoteAddr();
     }
 

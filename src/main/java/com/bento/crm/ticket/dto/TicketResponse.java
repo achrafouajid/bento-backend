@@ -2,6 +2,7 @@ package com.bento.crm.ticket.dto;
 
 import com.bento.crm.common.model.EntityLink;
 import com.bento.crm.common.model.RelatedEntityType;
+import com.bento.crm.task.dto.TaskProgress;
 import com.bento.crm.ticket.model.Ticket;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -23,6 +24,7 @@ public class TicketResponse {
     private UUID organizationId;
     private String title;
     private String description;
+    private String type;
     private UUID partnerId;
     private RelatedEntityType relatedEntityType;
     private UUID relatedEntityId;
@@ -31,18 +33,26 @@ public class TicketResponse {
     private Ticket.Priority priority;
     private LocalDate deadline;
     private String resolution;
+    /** Tasks raised for this ticket, and how many of them are done — "2/5" on the ticket row. */
+    private long taskCount;
+    private long taskDoneCount;
     private UUID createdBy;
     private UUID updatedBy;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
     public static TicketResponse fromEntity(Ticket ticket) {
+        return fromEntity(ticket, TaskProgress.none(ticket.getId()));
+    }
+
+    public static TicketResponse fromEntity(Ticket ticket, TaskProgress progress) {
         EntityLink link = ticket.getRelatedEntity() != null ? ticket.getRelatedEntity() : EntityLink.empty();
         return TicketResponse.builder()
                 .id(ticket.getId())
                 .organizationId(ticket.getOrganizationId())
                 .title(ticket.getTitle())
                 .description(ticket.getDescription())
+                .type(ticket.getType())
                 .partnerId(ticket.getPartnerId())
                 .relatedEntityType(link.getRelatedEntityType())
                 .relatedEntityId(link.getRelatedEntityId())
@@ -51,6 +61,8 @@ public class TicketResponse {
                 .priority(ticket.getPriority())
                 .deadline(ticket.getDeadline())
                 .resolution(ticket.getResolution())
+                .taskCount(progress.total())
+                .taskDoneCount(progress.done())
                 .createdBy(ticket.getCreatedBy())
                 .updatedBy(ticket.getUpdatedBy())
                 .createdAt(ticket.getCreatedAt() != null ?
