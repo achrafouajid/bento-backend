@@ -1,0 +1,171 @@
+spring:
+  application:
+    name: crm-backend
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 25
+        order_inserts: true
+        order_updates: true
+        default_batch_fetch_size: 25
+        format_sql: true
+        use_sql_comments: true
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:crm_db}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+  cache:
+    type: redis
+    redis:
+      time-to-live: 300000
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+    web:
+      pageable:
+        default-page-size: 200
+        max-page-size: 1000
+  servlet:
+    multipart:
+      # The application enforces a 15 MB ceiling in LocalFileStorageService; keep the container
+      # limit just above it so an oversized upload reaches that check and returns the app's 400
+      # instead of failing earlier. Without these keys the Spring Boot default is 1 MB and any
+      # upload over 1 MB blows up before the controller runs.
+      max-file-size: 16MB
+      max-request-size: 20MB
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    default-property-inclusion: non_null
+  threads:
+    virtual:
+      enabled: true
+  mail:
+    # Hostinger's outbound relay. 465/SSL is used rather than 587/STARTTLS because Hostinger
+    # VPS images block outbound 587 by default on some plans, while 465 is always open.
+    host: ${MAIL_HOST:smtp.hostinger.com}
+    port: ${MAIL_PORT:465}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    protocol: smtp
+    default-encoding: UTF-8
+    properties:
+      mail:
+        smtp:
+          auth: true
+          # Implicit TLS on 465. When MAIL_PORT is set to 587 instead, flip these two:
+          # ssl.enable false, starttls.enable true.
+          ssl:
+            enable: ${MAIL_SSL:true}
+            trust: ${MAIL_HOST:smtp.hostinger.com}
+          starttls:
+            enable: ${MAIL_STARTTLS:false}
+          connectiontimeout: 10000
+          timeout: 10000
+          writetimeout: 10000
+        transport:
+          protocol: smtp
+
+server:
+  servlet:
+    context-path: /api/v1
+  port: ${SERVER_PORT:8080}
+  # The app only ever receives connections from Traefik on the internal Docker network, which
+  # appends the real client to X-Forwarded-For. "native" enables Tomcat's RemoteIpValve with its
+  # default internal-proxies range (10/8, 172.16/12, 192.168/16, loopback), so X-Forwarded-For is
+  # honoured only when the immediate peer is one of those and request.getRemoteAddr() is rewritten
+  # to the true client IP. A client-supplied X-Forwarded-For can no longer forge the address the
+  # rate limiter buckets on.
+  forward-headers-strategy: native
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,prometheus
+  health:
+    # Setting spring.mail.host auto-registers a MailHealthIndicator that opens a live
+    # Transport.connect() to the relay on every /actuator/health probe. Hostinger's 465
+    # is slow or blocked from some VPS images and the mailbox credentials may not be wired
+    # yet, so that probe would make health return 503 and the container never goes healthy.
+    # Mail is a non-critical, best-effort dependency (sends are @Async and swallow failures),
+    # so it must not gate the deploy healthcheck.
+    mail:
+      enabled: false
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+logging:
+  level:
+    root: INFO
+    org.springframework.security: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+  logback:
+    rollingpolicy:
+      max-file-size: 10MB
+      max-history: 10
+
+springdoc:
+  api-docs:
+    path: /openapi
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+
+whatsapp:
+  meta:
+    base-url: https://graph.facebook.com
+    api-version: v22.0
+    # HMAC key Meta signs webhook bodies with. Belongs to the Meta App, so it is
+    # shared by every WABA subscribed to that app. Left empty, signature checking
+    # is skipped and a warning is logged on every callback — set it before going live.
+    app-secret: ${WHATSAPP_APP_SECRET:}
+    # Echoed back during Meta's subscription handshake; must match what is typed
+    # into the webhook configuration in Business Manager.
+    verify-token: ${WHATSAPP_VERIFY_TOKEN:bento-verify}
+  followup:
+    poll-interval-ms: ${WHATSAPP_FOLLOWUP_POLL_MS:60000}
+    initial-delay-ms: 30000
+    batch-size: 50
+    max-attempts: 3
+    business-hours:
+      # Relances outside these hours are pushed to the next window rather than sent:
+      # a marketing message at 03:00 earns blocks, and blocks cost quality rating.
+      enabled: ${WHATSAPP_BUSINESS_HOURS:true}
+      zone: Africa/Casablanca
+      start: 9
+      end: 18
+
+partner:
+  purge:
+    # Soft-deleted partners stay restorable for this long, then the nightly job removes them
+    # for good. Shorten it in a test environment to exercise the purge without waiting a month.
+    retention-days: ${PARTNER_PURGE_RETENTION_DAYS:30}
+    cron: ${PARTNER_PURGE_CRON:0 0 3 * * *}
+
+app:
+  mail:
+    # Must be a real mailbox on the sending domain -- Hostinger's relay rejects a From address
+    # it does not host, and a mismatched From fails DMARC alignment at the recipient.
+    from: ${MAIL_FROM:no-reply@crmbento.com}
+    from-name: ${MAIL_FROM_NAME:Bento CRM}
+    reply-to: ${MAIL_REPLY_TO:}
+    # With no SMTP username configured, sending is skipped and the message is logged instead,
+    # so local development needs no mail server and never emails a real person by accident.
+    enabled: ${MAIL_ENABLED:true}
+  invitation:
+    # Where the invitee lands. The accept page reads the token from the query string, so this
+    # must point at the deployed frontend, not the API.
+    accept-url: ${INVITATION_ACCEPT_URL:http://localhost:3000/invite/accept}
+    expiry-days: ${INVITATION_EXPIRY_DAYS:7}

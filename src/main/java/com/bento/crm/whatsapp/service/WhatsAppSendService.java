@@ -1,0 +1,137 @@
+package com.bento.crm.whatsapp.service;
+
+import com.bento.crm.campaign.model.Campaign;
+import com.bento.crm.campaign.model.CampaignRecipient;
+import com.bento.crm.campaign.repository.CampaignRecipientRepository;
+import com.bento.crm.whatsapp.model.WaAccount;
+import com.bento.crm.whatsapp.model.WaConversation;
+import com.bento.crm.whatsapp.model.WaMessage;
+import com.bento.crm.whatsapp.provider.WhatsAppProvider;
+import com.bento.crm.whatsapp.provider.WhatsAppProviderRegistry;
+import com.bento.crm.whatsapp.repository.WaMessageRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
+
+/**
+ * Sends one templated message to one recipient and records the result.
+ *
+ * <p>Each send runs in its own transaction ({@code REQUIRES_NEW}) so one contact's
+ * failure cannot roll back the rest of a campaign, and so a long campaign never
+ * holds a single database transaction open across hundreds of network calls.
+ */
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class WhatsAppSendService {
+
+    private final WhatsAppProviderRegistry providerRegistry;
+    private final WaMessageRepository messageRepository;
+    private final CampaignRecipientRepository recipientRepository;
+    private final WaConversationService conversationService;
+
+    /**
+     * @param sequenceStep 0 for the initial campaign send, 1 for the J+3 relance
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public Outcome sendTemplate(WaAccount account,
+                                Campaign campaign,
+                                CampaignRecipient recipient,
+                                WaConversation conversation,
+                                String templateName,
+                                int sequenceStep) {
+
+        UUID orgId = account.getOrganizationId();
+        Instant now = Instant.now();
+
+        if (conversation.isOptedOut()) {
+            markTerminal(recipient, CampaignRecipient.Status.OPTED_OUT, now,
+                    "OPTED_OUT", "Contact sent STOP and cannot receive marketing messages");
+            return new Outcome(false, null, "OPTED_OUT", false);
+        }
+
+        WaMessage message = new WaMessage();
+        message.setOrganizationId(orgId);
+        message.setConversationId(conversation.getId());
+        message.setCampaignId(campaign.getId());
+        message.setRecipientId(recipient.getId());
+        message.setDirection(WaMessage.Direction.OUT);
+        message.setMessageType("template");
+        message.setTemplateName(templateName);
+        message.setTemplateParams(campaign.getTemplateParams());
+        message.setBody(campaign.getBodyPreview());
+        message.setSequenceStep(sequenceStep);
+        message.setStatus(WaMessage.Status.QUEUED);
+
+        WhatsAppProvider provider = providerRegistry.forAccount(account);
+        WhatsAppProvider.SendResult result = provider.sendTemplate(
+                account,
+                conversation.getPhoneE164(),
+                templateName,
+                campaign.getTemplateLang(),
+                campaign.getTemplateParams());
+
+        if (result.success()) {
+            message.setWamid(result.wamid());
+            message.setStatus(WaMessage.Status.SENT);
+            messageRepository.save(message);
+
+            // Delivery states only ever move forward: a contact who already replied
+            // to the first message must not be reset to SENT by their relance.
+            if (recipient.canAdvanceTo(CampaignRecipient.Status.SENT)) {
+                recipient.setStatus(CampaignRecipient.Status.SENT);
+                recipient.setSentAt(now);
+            }
+            if (sequenceStep > 0) {
+                recipient.setFollowupCount(recipient.getFollowupCount() + 1);
+                recipient.setLastFollowupAt(now);
+            }
+            recipientRepository.save(recipient);
+            conversationService.recordOutbound(conversation.getId(), now);
+
+            return new Outcome(true, message.getId(), null, false);
+        }
+
+        message.setStatus(WaMessage.Status.FAILED);
+        message.setErrorCode(result.errorCode());
+        message.setErrorTitle(result.errorTitle());
+        messageRepository.save(message);
+
+        // A retryable failure leaves the recipient alone so the scheduler can try
+        // again; only a permanent rejection marks them FAILED in the CRM.
+        if (!result.retryable()) {
+            markTerminal(recipient, CampaignRecipient.Status.FAILED, now,
+                    result.errorCode(), result.errorTitle());
+        }
+
+        log.warn("[wa] send failed campaign={} recipient={} code={}",
+                campaign.getId(), recipient.getId(), result.errorCode());
+        return new Outcome(false, message.getId(), result.errorCode(), result.retryable());
+    }
+
+    private void markTerminal(CampaignRecipient recipient, CampaignRecipient.Status status,
+                              Instant at, String errorCode, String errorTitle) {
+        if (!recipient.canAdvanceTo(status)) {
+            return;
+        }
+        recipient.setStatus(status);
+        recipient.setFailedAt(at);
+        recipient.setErrorCode(errorCode);
+        recipient.setErrorTitle(errorTitle);
+        recipientRepository.save(recipient);
+    }
+
+    /** Convenience for template params that are not campaign-wide. */
+    public List<String> resolveParams(Campaign campaign) {
+        return campaign.getTemplateParams() == null ? List.of() : campaign.getTemplateParams();
+    }
+
+    public record Outcome(boolean success, UUID messageId, String errorCode, boolean retryable) {
+    }
+}
