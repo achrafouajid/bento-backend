@@ -108,3 +108,43 @@ tab shows calls to `https://apidev.crmbento.com/api/v1/...` succeeding.
 ```bash
 git checkout main && git merge --ff-only dev && git push origin main
 ```
+
+---
+
+## Appendix: running the backend test suite without a local JDK/Maven
+
+The integration tests (`src/test/java/com/bento/crm/support/IntegrationTestBase.java`)
+use Testcontainers to start Postgres and Redis, so they need a Docker daemon.
+Testcontainers is pinned to `1.21.4` in `pom.xml` (`testcontainers.version`) —
+the first 1.x release that talks to **Docker Engine 29+** (older releases fail
+with `Could not find a valid Docker environment ... BadRequestException (Status 400)`
+because Docker 29 dropped the API versions they negotiate).
+
+If the machine has no JDK/Maven, run Maven inside Docker from `bento-api-main`
+(Git Bash on Windows; drop `MSYS_NO_PATHCONV=1` and use `$(pwd)` on macOS/Linux):
+
+```bash
+MSYS_NO_PATHCONV=1 docker run --rm \
+  -v "$(pwd -W):/build" \
+  -v bento-m2:/root/.m2/repository \
+  -v "$(pwd -W)/maven-settings.xml:/root/.m2/settings.xml" \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -e TESTCONTAINERS_HOST_OVERRIDE=host.docker.internal \
+  -e TESTCONTAINERS_RYUK_DISABLED=true \
+  -w /build maven:3.9-eclipse-temurin-17 \
+  mvn -s /root/.m2/settings.xml \
+      -Dmaven.wagon.http.ssl.insecure=true -Dmaven.wagon.http.ssl.allowall=true \
+      test -Dtest=TicketTasksTest       # omit -Dtest=... for the full suite
+```
+
+What each piece is for:
+
+| Flag | Why |
+|---|---|
+| `-v bento-m2:/root/.m2/repository` | Named volume caching the Maven repo between runs. |
+| `-v /var/run/docker.sock:...` | Lets Testcontainers inside the Maven container drive the host's Docker daemon (Docker Desktop exposes this path on Windows/macOS too). |
+| `TESTCONTAINERS_HOST_OVERRIDE=host.docker.internal` | **Required.** Testcontainers detects it is running in a container and guesses the host as the bridge gateway (`172.17.0.1`), where Docker Desktop does not expose published ports — Redis then fails with `Timed out waiting for container port to open`. `host.docker.internal` is where the mapped ports are actually reachable. |
+| `TESTCONTAINERS_RYUK_DISABLED=true` | Skips the Ryuk reaper sidecar; Testcontainers' JVM shutdown hook still removes the Postgres/Redis containers when Maven exits. |
+| `-Dmaven.wagon.http.ssl.*=true` | Only needed behind a TLS-intercepting proxy; harmless otherwise. |
+
+Results land in `target/surefire-reports/` as usual.

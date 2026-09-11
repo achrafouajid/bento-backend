@@ -332,5 +332,6 @@ Add a collaborator: repo → **Settings → Collaborators → Add people**, role
 | PR shows hundreds of changed files | Your branch is based on an old `dev`. `git fetch origin && git rebase origin/dev`. |
 | Frontend loads but every API call fails | Backend isn't running locally, or `environment.ts` points somewhere unreachable. Start `bento-backend` (§5) or point at `https://apidev.crmbento.com/api/v1`. |
 | `mvn spring-boot:run` fails to connect to DB | `docker compose up -d postgres redis` first, and `export DB_HOST=localhost REDIS_HOST=localhost`. |
+| `mvn test` fails with `Could not find a valid Docker environment ... Status 400` | Testcontainers older than 1.21.4 cannot talk to Docker Engine 29+. Check `testcontainers.version` in `pom.xml`. No local JDK/Maven? See the appendix in `SETUP-DEV.md` for running the suite via `docker run maven:3.9-eclipse-temurin-17`. |
 | Dev site didn't update after merge | Check the repo's **Actions** tab, branch `dev`. A red run means the deploy failed — send the log to the maintainer. |
 | `npm install` errors on Node version | You're not on Node 22. `nvm install 22 && nvm use 22`. |

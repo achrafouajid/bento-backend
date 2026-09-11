@@ -29,7 +29,7 @@
         <jjwt.version>0.11.5</jjwt.version>
         <bucket4j.version>8.10.1</bucket4j.version>
         <springdoc-openapi.version>2.3.0</springdoc-openapi.version>
-        <testcontainers.version>1.19.3</testcontainers.version>
+        <testcontainers.version>1.21.4</testcontainers.version>
     </properties>
 
     <repositories>

@@ -5,10 +5,15 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
+import org.hibernate.annotations.BatchSize;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -21,6 +26,28 @@ public class Deal extends BaseTenantEntity {
 
     @Column(nullable = false, columnDefinition = "uuid")
     private UUID partnerId;
+
+    /**
+     * Order lines, owned by the deal (cascade + orphan removal): a write that carries
+     * {@code orderLines} replaces the set. Batch-fetched so listing a page of deals costs one
+     * extra query rather than one per deal.
+     */
+    @OneToMany(mappedBy = "deal", cascade = CascadeType.ALL, orphanRemoval = true)
+    @BatchSize(size = 50)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @Builder.Default
+    private List<DealOrderLine> orderLines = new ArrayList<>();
+
+    /** Replaces the lines in place (same collection instance, so orphan removal keeps working). */
+    public void replaceOrderLines(List<DealOrderLine> lines) {
+        orderLines.clear();
+        for (DealOrderLine line : lines) {
+            line.setDeal(this);
+            line.setOrganizationId(getOrganizationId());
+            orderLines.add(line);
+        }
+    }
 
     @Column(columnDefinition = "uuid")
     private UUID proposalId;

@@ -25,6 +25,10 @@ public class Ticket extends BaseTenantEntity {
     @Column(columnDefinition = "text")
     private String description;
 
+    /** Free-text category ("Software issue", "Billing issue", …) chosen in the ticket form. */
+    @Column(length = 50)
+    private String type;
+
     /**
      * Denormalised mirror of {@link #relatedEntity} when it points at a partner, kept so
      * partner-scoped reads and the {@code idx_ticket_partner} index still work. Maintained by

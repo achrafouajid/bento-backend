@@ -29,7 +29,7 @@ public class AuthController {
     @PostMapping("/login")
     @Operation(summary = "Login with email and password", description = "Authenticate and receive JWT tokens")
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
-        LoginResponse response = authService.login(request.getEmail(), request.getPassword());
+        LoginResponse response = authService.login(request.getEmail(), request.getPassword(), request.getOrganizationId());
         return ResponseEntity.ok(response);
     }
 

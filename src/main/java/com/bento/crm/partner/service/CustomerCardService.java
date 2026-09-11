@@ -47,15 +47,15 @@ public class CustomerCardService {
         card.setRc(request.getRc());
         card.setRcCity(request.getRcCity());
         card.setTp(request.getTp());
-        card.setVatStatus(request.getVatStatus());
+        card.setVatStatus(request.getVatStatus() != null ? request.getVatStatus() : new java.util.ArrayList<>());
         card.setOrgType(request.getOrgType() != null ? CustomerCard.OrgType.valueOf(request.getOrgType().toUpperCase()) : null);
         card.setParentAccountId(request.getParentAccountId() != null && !request.getParentAccountId().isBlank()
                 ? UUID.fromString(request.getParentAccountId()) : null);
-        card.setAddresses(request.getAddresses());
+        card.setAddresses(request.getAddresses() != null ? request.getAddresses() : new java.util.ArrayList<>());
         card.setMainPhone(request.getMainPhone());
         card.setCorporateEmail(request.getCorporateEmail());
         card.setWebsiteUrl(request.getWebsiteUrl());
-        card.setPersonnel(request.getPersonnel());
+        card.setPersonnel(request.getPersonnel() != null ? request.getPersonnel() : new java.util.ArrayList<>());
 
         return customerCardRepository.save(card);
     }

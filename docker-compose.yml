@@ -43,7 +43,7 @@ services:
     # `image` lets CI deploy by `docker compose pull` (BACKEND_IMAGE_TAG set to the
     # commit-sha tag GHCR just built); `build` keeps `docker compose up -d --build`
     # working unchanged for local/manual use.
-    image: ghcr.io/achrafouajid/bento-backend-app:${BACKEND_IMAGE_TAG:-latest}
+    image: ghcr.io/bento-solutions/bento-backend-app:${BACKEND_IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: Dockerfile

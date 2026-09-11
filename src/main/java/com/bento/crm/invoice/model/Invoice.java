@@ -12,6 +12,7 @@ import org.hibernate.type.SqlTypes;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -72,9 +73,11 @@ public class Invoice extends BaseTenantEntity {
 
     private BigDecimal total;
 
+    // NOT NULL in the schema: an invoice with no itemised lines (manual total) must still save.
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
-    private List<Map<String, Object>> lines;
+    @Builder.Default
+    private List<Map<String, Object>> lines = new ArrayList<>();
 
     public enum InvoiceType {
         CUSTOMER, VENDOR

@@ -5,24 +5,19 @@ import com.bento.crm.campaign.model.CampaignRecipient;
 import com.bento.crm.campaign.repository.CampaignRecipientRepository;
 import com.bento.crm.campaign.repository.CampaignRepository;
 import com.bento.crm.common.exception.ResourceNotFoundException;
-import com.bento.crm.partner.model.Partner;
-import com.bento.crm.partner.repository.PartnerRepository;
 import com.bento.crm.whatsapp.model.WaAccount;
 import com.bento.crm.whatsapp.model.WaConversation;
 import com.bento.crm.whatsapp.repository.WaAccountRepository;
 import com.bento.crm.whatsapp.service.WaConversationService;
 import com.bento.crm.whatsapp.service.WaFollowupService;
 import com.bento.crm.whatsapp.service.WhatsAppSendService;
-import com.bento.crm.whatsapp.util.PhoneNumbers;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.task.TaskExecutor;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -40,7 +35,7 @@ public class CampaignLaunchService {
 
     private final CampaignRepository campaignRepository;
     private final CampaignRecipientRepository recipientRepository;
-    private final PartnerRepository partnerRepository;
+    private final CampaignRecipientService recipientService;
     private final WaAccountRepository accountRepository;
     private final WaConversationService conversationService;
     private final WhatsAppSendService sendService;
@@ -74,48 +69,14 @@ public class CampaignLaunchService {
     }
 
     /**
-     * Adds the selected partners to a campaign as PENDING recipients.
-     *
-     * <p>Partners whose phone number cannot be normalised are still recorded, as
-     * SKIPPED — silently dropping them would leave the agent wondering why they
-     * selected 40 contacts and the campaign shows 37.
+     * Adds the selected partners to a campaign as recipients. Delegates to
+     * {@link CampaignRecipientService#enroll}, which resolves each partner's contact detail for
+     * whatever channel this campaign is (this service only ever creates WhatsApp campaigns, but
+     * the enrollment step itself is channel-agnostic and shared with Email/SMS campaigns too).
      */
     @Transactional
     public List<CampaignRecipient> addRecipients(UUID orgId, UUID campaignId, List<UUID> partnerIds) {
-        Campaign campaign = requireCampaign(orgId, campaignId);
-        List<CampaignRecipient> created = new ArrayList<>();
-
-        for (UUID partnerId : partnerIds) {
-            Partner partner = partnerRepository.findByOrganizationIdAndId(orgId, partnerId).orElse(null);
-            if (partner == null) {
-                log.warn("[wa] partner {} not found in org {}, skipping", partnerId, orgId);
-                continue;
-            }
-
-            CampaignRecipient recipient = new CampaignRecipient();
-            recipient.setOrganizationId(orgId);
-            recipient.setCampaignId(campaign.getId());
-            recipient.setPartnerId(partnerId);
-            recipient.setFollowupCount(0);
-
-            String phone = PhoneNumbers.toE164(partner.getPhone()).orElse(null);
-            if (phone == null) {
-                recipient.setStatus(CampaignRecipient.Status.SKIPPED);
-                recipient.setErrorCode("NO_PHONE");
-                recipient.setErrorTitle("No usable phone number on this contact");
-            } else {
-                recipient.setPhoneE164(phone);
-                recipient.setStatus(CampaignRecipient.Status.PENDING);
-            }
-
-            try {
-                created.add(recipientRepository.saveAndFlush(recipient));
-            } catch (DataIntegrityViolationException e) {
-                // Already enrolled: re-selecting a contact must not duplicate them.
-                log.debug("[wa] partner {} already in campaign {}", partnerId, campaignId);
-            }
-        }
-        return created;
+        return recipientService.enroll(orgId, campaignId, partnerIds);
     }
 
     /**

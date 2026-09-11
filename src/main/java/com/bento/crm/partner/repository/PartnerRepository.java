@@ -24,6 +24,10 @@ public interface PartnerRepository extends JpaRepository<Partner, UUID> {
     @Query("SELECT p FROM Partner p WHERE p.organizationId = :orgId AND p.id = :id AND p.deletedAt IS NULL")
     Optional<Partner> findByOrganizationIdAndId(@Param("orgId") UUID orgId, @Param("id") UUID id);
 
+    @Query("SELECT p FROM Partner p WHERE p.organizationId = :orgId AND p.externalId = :externalId AND p.deletedAt IS NULL")
+    Optional<Partner> findByOrganizationIdAndExternalId(@Param("orgId") UUID orgId,
+                                                        @Param("externalId") String externalId);
+
     @Query("SELECT p FROM Partner p WHERE p.organizationId = :orgId AND p.deletedAt IS NULL ORDER BY p.createdAt DESC")
     Page<Partner> findByOrganizationId(@Param("orgId") UUID orgId, Pageable pageable);
 

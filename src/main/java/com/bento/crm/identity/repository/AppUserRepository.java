@@ -15,8 +15,22 @@ import java.util.UUID;
 @Repository
 public interface AppUserRepository extends JpaRepository<AppUser, UUID> {
 
-    @Query("SELECT u FROM AppUser u WHERE u.organizationId = :organizationId AND u.email = :email")
+    @Query("SELECT u FROM AppUser u WHERE u.organizationId = :organizationId AND lower(u.email) = lower(:email)")
     Optional<AppUser> findByOrganizationIdAndEmail(@Param("organizationId") UUID organizationId, @Param("email") String email);
+
+    /**
+     * Cross-tenant lookup by email, used only by the login and signup paths.
+     *
+     * <p>Email is unique per organization, not globally, so this can legitimately return more
+     * than one row — the same person may hold accounts in several tenants. Login disambiguates
+     * by password; signup uses it to reject an address that is already in use.
+     *
+     * <p>Deliberately not org-scoped, which is why it is spelled out here rather than being one
+     * more caller of a generic finder: it is the only query in the application that is allowed to
+     * cross tenants, and it must stay easy to spot in review.
+     */
+    @Query("SELECT u FROM AppUser u WHERE lower(u.email) = lower(:email) ORDER BY u.createdAt")
+    List<AppUser> findAllByEmailAcrossOrganizations(@Param("email") String email);
 
     @Query("SELECT u FROM AppUser u WHERE u.organizationId = :organizationId AND u.isActive = true")
     List<AppUser> findActiveByOrganizationId(@Param("organizationId") UUID organizationId);

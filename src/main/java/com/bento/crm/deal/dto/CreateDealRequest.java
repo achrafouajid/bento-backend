@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -74,4 +75,10 @@ public class CreateDealRequest {
     private String warehouseAddress;
 
     private String transportationService;
+
+    /**
+     * Order lines. {@code null} leaves the stored lines untouched (a caller that does not know
+     * about lines must not wipe them); an empty list clears them.
+     */
+    private List<OrderLineDto> orderLines;
 }

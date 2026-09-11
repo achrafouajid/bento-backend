@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 
 @Component
 @Getter
@@ -21,7 +22,7 @@ public class JwtProperties {
             @Value("${JWT_SECRET}") String secret,
             @Value("${JWT_ACCESS_TOKEN_EXPIRY:900000}") long accessTokenExpiry,
             @Value("${JWT_REFRESH_TOKEN_EXPIRY:2592000000}") long refreshTokenExpiry) {
-        if (secret == null || secret.getBytes().length < MIN_SECRET_LENGTH) {
+        if (secret == null || secret.getBytes(StandardCharsets.UTF_8).length < MIN_SECRET_LENGTH) {
             throw new IllegalStateException(
                     "JWT_SECRET must be set to a value of at least " + MIN_SECRET_LENGTH + " bytes");
         }
@@ -31,6 +32,6 @@ public class JwtProperties {
     }
 
     public SecretKey getSecretKey() {
-        return Keys.hmacShaKeyFor(secret.getBytes());
+        return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 }

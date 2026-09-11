@@ -1,27 +1,26 @@
 package com.bento.crm.auth.service;
 
-import com.bento.crm.auth.dto.LoginRequest;
 import com.bento.crm.auth.dto.LoginResponse;
 import com.bento.crm.common.exception.AuthenticationFailedException;
-import com.bento.crm.common.exception.ResourceNotFoundException;
-import com.bento.crm.common.model.UserRole;
 import com.bento.crm.identity.dto.UserResponseDto;
 import com.bento.crm.identity.mapper.UserMapper;
 import com.bento.crm.identity.model.AppUser;
 import com.bento.crm.identity.model.RefreshToken;
 import com.bento.crm.identity.repository.AppUserRepository;
 import com.bento.crm.identity.repository.RefreshTokenRepository;
-import com.bento.crm.organization.model.Organization;
-import com.bento.crm.organization.repository.OrganizationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.time.Duration;
 import java.time.Instant;
+import java.util.HexFormat;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -29,28 +28,67 @@ import java.util.UUID;
 @Slf4j
 public class AuthService {
 
+    /**
+     * A BCrypt hash of a value nobody knows, verified against when no account matches the
+     * submitted email. Without it, a login for a non-existent address returns in microseconds
+     * while a real one costs a full BCrypt round, which is enough to enumerate customers'
+     * email addresses from response timing alone.
+     */
+    private static final String DUMMY_HASH = "$2a$12$C6UzMDM.H6dfI/f/IKcEe.7DKlF3M9ZLtEIcuNCE1u5ZfvIzZJHFq";
+
     private final AppUserRepository userRepository;
-    private final OrganizationRepository organizationRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
     private final UserMapper userMapper;
 
-    @Transactional
-    public LoginResponse login(String email, String password) {
-        // Find user by email across all organizations (federation lookup)
-        var users = userRepository.findAll();
-        AppUser user = users.stream()
-                .filter(u -> u.getEmail().equalsIgnoreCase(email))
-                .findFirst()
-                .orElseThrow(() -> new AuthenticationFailedException("Invalid credentials"));
+    @Value("${JWT_ACCESS_TOKEN_EXPIRY:900000}")
+    private long accessTokenExpiryMs;
 
-        if (!user.getIsActive()) {
-            throw new AuthenticationFailedException("User account is inactive");
+    @Value("${JWT_REFRESH_TOKEN_EXPIRY:2592000000}")
+    private long refreshTokenExpiryMs;
+
+    /**
+     * Authenticates by email and password.
+     *
+     * <p>Email is unique per organization, not globally, so an address can belong to several
+     * tenants. The password decides which: every candidate account is checked and exactly one
+     * must match. Two accounts sharing an email <em>and</em> a password is the only ambiguous
+     * case, and it is refused rather than resolved arbitrarily — silently picking the first row
+     * of an unordered scan is how a user ends up locked out of the tenant they meant to reach.
+     */
+    @Transactional
+    public LoginResponse login(String email, String password, UUID organizationId) {
+        List<AppUser> candidates = userRepository.findAllByEmailAcrossOrganizations(normalizeEmail(email));
+        if (organizationId != null) {
+            candidates = candidates.stream()
+                    .filter(u -> organizationId.equals(u.getOrganizationId()))
+                    .toList();
         }
 
-        if (!passwordEncoder.matches(password, user.getPasswordHash())) {
+        if (candidates.isEmpty()) {
+            // Burn a BCrypt round anyway so the timing matches the "account exists" path.
+            passwordEncoder.matches(password, DUMMY_HASH);
             throw new AuthenticationFailedException("Invalid credentials");
+        }
+
+        List<AppUser> matched = candidates.stream()
+                .filter(u -> passwordEncoder.matches(password, u.getPasswordHash()))
+                .toList();
+
+        if (matched.isEmpty()) {
+            throw new AuthenticationFailedException("Invalid credentials");
+        }
+        if (matched.size() > 1) {
+            log.warn("Login for {} matched {} accounts across organizations", email, matched.size());
+            throw new AuthenticationFailedException(
+                    "This email and password combination is registered with more than one organization. "
+                            + "Send organization_id with the login request to choose one.");
+        }
+
+        AppUser user = matched.get(0);
+        if (!Boolean.TRUE.equals(user.getIsActive())) {
+            throw new AuthenticationFailedException("User account is inactive");
         }
 
         return issueSession(user);
@@ -66,14 +104,63 @@ public class AuthService {
     public LoginResponse issueSession(AppUser user) {
         user.setLastActiveAt(Instant.now());
         userRepository.save(user);
+        return mintTokens(user, null);
+    }
 
+    /**
+     * Rotates a refresh token.
+     *
+     * <p>Rotation is one-shot: the presented token is revoked as it is exchanged. Presenting an
+     * already-revoked token therefore means either a replay of a stolen credential or a client
+     * that raced itself, and in both cases every token for that user is revoked — the safe
+     * reading is that the token leaked, and forcing a fresh login is cheap next to the
+     * alternative.
+     */
+    @Transactional
+    public LoginResponse refresh(String refreshTokenValue) {
+        String tokenHash = hashToken(refreshTokenValue);
+
+        RefreshToken stored = refreshTokenRepository.findByTokenHash(tokenHash)
+                .orElseThrow(() -> new AuthenticationFailedException("Invalid or expired refresh token"));
+
+        if (stored.getRevokedAt() != null) {
+            log.warn("Refresh token reuse detected for user {} — revoking all sessions", stored.getUserId());
+            refreshTokenRepository.revokeAllForUser(stored.getUserId(), Instant.now());
+            throw new AuthenticationFailedException("Invalid or expired refresh token");
+        }
+        if (stored.getExpiresAt().isBefore(Instant.now())) {
+            throw new AuthenticationFailedException("Invalid or expired refresh token");
+        }
+
+        AppUser user = userRepository.findById(stored.getUserId())
+                .orElseThrow(() -> new AuthenticationFailedException("Invalid or expired refresh token"));
+
+        // A deactivated user still holds a refresh token valid for up to 30 days. Without this
+        // check, deactivating an account does not actually end its access.
+        if (!Boolean.TRUE.equals(user.getIsActive())) {
+            refreshTokenRepository.revokeAllForUser(user.getId(), Instant.now());
+            throw new AuthenticationFailedException("User account is inactive");
+        }
+
+        refreshTokenRepository.revokeToken(stored.getId(), Instant.now());
+        return mintTokens(user, stored.getId());
+    }
+
+    @Transactional
+    public void logout(UUID userId) {
+        refreshTokenRepository.revokeAllForUser(userId, Instant.now());
+        log.info("User {} logged out", userId);
+    }
+
+    private LoginResponse mintTokens(AppUser user, UUID replacedTokenId) {
         String accessToken = jwtService.generateAccessToken(user.getId(), user.getOrganizationId(), user.getRole());
         String refreshTokenValue = jwtService.generateRefreshToken(user.getId(), user.getOrganizationId());
 
         RefreshToken refreshToken = RefreshToken.builder()
                 .userId(user.getId())
                 .tokenHash(hashToken(refreshTokenValue))
-                .expiresAt(Instant.now().plusSeconds(2592000))
+                .expiresAt(Instant.now().plusMillis(refreshTokenExpiryMs))
+                .replacedByTokenId(replacedTokenId)
                 .build();
         refreshTokenRepository.save(refreshToken);
 
@@ -83,63 +170,21 @@ public class AuthService {
                 .accessToken(accessToken)
                 .refreshToken(refreshTokenValue)
                 .tokenType("Bearer")
-                .expiresIn(900L)
+                .expiresIn(Duration.ofMillis(accessTokenExpiryMs).toSeconds())
                 .user(userDto)
                 .build();
     }
 
-    @Transactional
-    public LoginResponse refresh(String refreshTokenValue) {
-        String tokenHash = hashToken(refreshTokenValue);
-        RefreshToken refreshToken = refreshTokenRepository.findValidToken(tokenHash, Instant.now())
-                .orElseThrow(() -> new AuthenticationFailedException("Invalid or expired refresh token"));
-
-        AppUser user = userRepository.findById(refreshToken.getUserId())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-
-        refreshTokenRepository.revokeToken(refreshToken.getId(), Instant.now());
-
-        String newAccessToken = jwtService.generateAccessToken(user.getId(), user.getOrganizationId(), user.getRole());
-        String newRefreshTokenValue = jwtService.generateRefreshToken(user.getId(), user.getOrganizationId());
-
-        RefreshToken newRefreshToken = RefreshToken.builder()
-                .userId(user.getId())
-                .tokenHash(hashToken(newRefreshTokenValue))
-                .expiresAt(Instant.now().plusSeconds(2592000))
-                .replacedByTokenId(refreshToken.getId())
-                .build();
-        refreshTokenRepository.save(newRefreshToken);
-
-        UserResponseDto userDto = userMapper.toResponseDto(user);
-
-        return LoginResponse.builder()
-                .accessToken(newAccessToken)
-                .refreshToken(newRefreshTokenValue)
-                .tokenType("Bearer")
-                .expiresIn(900L)
-                .user(userDto)
-                .build();
-    }
-
-    @Transactional
-    public void logout(UUID userId) {
-        refreshTokenRepository.revokeAllForUser(userId, Instant.now());
-        log.info("User {} logged out", userId);
+    private static String normalizeEmail(String email) {
+        return email == null ? "" : email.trim();
     }
 
     private String hashToken(String token) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(token.getBytes(StandardCharsets.UTF_8));
-            StringBuilder hexString = new StringBuilder();
-            for (byte b : hash) {
-                String hex = Integer.toHexString(0xff & b);
-                if (hex.length() == 1) hexString.append('0');
-                hexString.append(hex);
-            }
-            return hexString.toString();
+            return HexFormat.of().formatHex(digest.digest(token.getBytes(StandardCharsets.UTF_8)));
         } catch (Exception e) {
-            throw new RuntimeException("Failed to hash token", e);
+            throw new IllegalStateException("Failed to hash token", e);
         }
     }
 }
