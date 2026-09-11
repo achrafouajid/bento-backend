@@ -48,6 +48,10 @@ public class JwtService {
 
     public String generateRefreshToken(UUID userId, UUID organizationId) {
         return Jwts.builder()
+                // Refresh tokens are stored by hash under a unique constraint. Without a random
+                // id, two logins in the same second mint byte-identical tokens (every other claim
+                // is second-granular) and the second login fails with a duplicate-key 409.
+                .setId(UUID.randomUUID().toString())
                 .setSubject(userId.toString())
                 .claim(CLAIM_TOKEN_TYPE, TYPE_REFRESH)
                 .claim("org", organizationId.toString())

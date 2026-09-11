@@ -6,7 +6,12 @@ import com.bento.crm.common.model.EntityLink;
 import com.bento.crm.common.model.RelatedEntityType;
 import com.bento.crm.common.repository.EntityLinkSpecifications;
 import com.bento.crm.notification.event.AssignmentNotificationFactory;
+import com.bento.crm.task.dto.CreateTaskRequest;
+import com.bento.crm.task.dto.TaskProgress;
+import com.bento.crm.task.model.Task;
+import com.bento.crm.task.service.TaskService;
 import com.bento.crm.ticket.dto.CreateTicketRequest;
+import com.bento.crm.ticket.dto.CreateTicketTaskRequest;
 import com.bento.crm.ticket.model.Ticket;
 import com.bento.crm.ticket.repository.TicketRepository;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +23,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -26,6 +34,7 @@ import java.util.UUID;
 public class TicketService {
 
     private final TicketRepository ticketRepository;
+    private final TaskService taskService;
     private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
@@ -65,6 +74,58 @@ public class TicketService {
         return ticketRepository.findAll(spec, pageable);
     }
 
+    /** Progress of the tasks raised for each given ticket; tickets without tasks are absent. */
+    public Map<UUID, TaskProgress> taskProgressFor(Collection<UUID> ticketIds) {
+        return taskService.progressFor(RelatedEntityType.TICKET, ticketIds);
+    }
+
+    public TaskProgress taskProgressFor(UUID ticketId) {
+        return taskProgressFor(List.of(ticketId)).getOrDefault(ticketId, TaskProgress.none(ticketId));
+    }
+
+    /** The tasks raised for one ticket. 404s on an unknown ticket rather than returning an empty page. */
+    public Page<Task> listTasks(UUID ticketId, Pageable pageable) {
+        Ticket ticket = getTicket(ticketId);
+        return taskService.listTasks(RelatedEntityType.TICKET, ticket.getId(), pageable);
+    }
+
+    /**
+     * Raises a task for a ticket. The task is linked back to the ticket and, where the request
+     * leaves them blank, takes the ticket's assignee, priority and deadline — so the person
+     * working the ticket gets the sub-task by default and it inherits the ticket's urgency.
+     */
+    @Transactional
+    public Task createTask(UUID ticketId, CreateTicketTaskRequest request) {
+        Ticket ticket = getTicket(ticketId);
+
+        CreateTaskRequest taskRequest = new CreateTaskRequest();
+        taskRequest.setTitle(request.getTitle());
+        taskRequest.setDescription(request.getDescription());
+        taskRequest.setAssignedTeamId(request.getAssignedTeamId());
+        taskRequest.setAssignedToUserId(request.getAssignedToUserId() != null
+                ? request.getAssignedToUserId() : ticket.getAssignedToUserId());
+        taskRequest.setAssignedByUserId(currentActor());
+        taskRequest.setStatus(request.getStatus() != null ? request.getStatus() : Task.TaskStatus.TODO);
+        taskRequest.setPriority(request.getPriority() != null
+                ? request.getPriority() : taskPriorityFor(ticket.getPriority()));
+        taskRequest.setDueDate(request.getDueDate() != null ? request.getDueDate() : ticket.getDeadline());
+        taskRequest.setRelatedEntityType(RelatedEntityType.TICKET);
+        taskRequest.setRelatedEntityId(ticket.getId());
+        return taskService.createTask(taskRequest);
+    }
+
+    /** Ticket priorities have one more level than task priorities; HIGH and URGENT both map to URGENT. */
+    static Task.Priority taskPriorityFor(Ticket.Priority priority) {
+        if (priority == null) {
+            return null;
+        }
+        return switch (priority) {
+            case LOW -> Task.Priority.LOW;
+            case MEDIUM -> Task.Priority.MEDIUM;
+            case HIGH, URGENT -> Task.Priority.URGENT;
+        };
+    }
+
     @Transactional
     public Ticket updateTicket(UUID id, CreateTicketRequest request) {
         Ticket ticket = getTicket(id);
@@ -98,6 +159,7 @@ public class TicketService {
     private void applyRequest(Ticket ticket, CreateTicketRequest request) {
         ticket.setTitle(request.getTitle());
         ticket.setDescription(request.getDescription());
+        ticket.setType(request.getType());
         ticket.setRelatedEntity(resolveLink(request));
         ticket.setPartnerId(ticket.getRelatedEntity().idOf(RelatedEntityType.PARTNER));
         ticket.setAssignedToUserId(request.getAssignedToUserId());

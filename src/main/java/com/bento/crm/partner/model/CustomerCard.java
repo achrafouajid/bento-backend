@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -47,9 +48,11 @@ public class CustomerCard extends BaseTenantEntity {
 
     private String tp;
 
+    // NOT NULL in the schema; a card created with only the fiscal identifiers has no statuses yet.
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
-    private List<String> vatStatus;
+    @Builder.Default
+    private List<String> vatStatus = new ArrayList<>();
 
     @Enumerated(EnumType.STRING)
     private OrgType orgType;
@@ -59,7 +62,8 @@ public class CustomerCard extends BaseTenantEntity {
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
-    private List<Map<String, Object>> addresses;
+    @Builder.Default
+    private List<Map<String, Object>> addresses = new ArrayList<>();
 
     private String mainPhone;
 
@@ -69,7 +73,8 @@ public class CustomerCard extends BaseTenantEntity {
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
-    private List<Map<String, Object>> personnel;
+    @Builder.Default
+    private List<Map<String, Object>> personnel = new ArrayList<>();
 
     public enum RecordType {
         ORGANIZATION, INDIVIDUAL

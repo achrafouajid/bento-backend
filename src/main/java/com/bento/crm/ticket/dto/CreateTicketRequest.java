@@ -5,6 +5,7 @@ import com.bento.crm.common.model.RelatedEntityType;
 import com.bento.crm.ticket.model.Ticket;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -21,6 +22,9 @@ public class CreateTicketRequest implements RelatableRequest {
     private String title;
 
     private String description;
+
+    @Size(max = 50)
+    private String type;
 
     /**
      * Legacy shorthand for a partner link, kept so existing clients keep working: when no

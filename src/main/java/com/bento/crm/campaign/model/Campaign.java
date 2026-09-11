@@ -10,6 +10,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -58,22 +59,29 @@ public class Campaign extends BaseTenantEntity {
     @Column(name = "template_name")
     private String templateName;
 
+    // The WhatsApp columns below are NOT NULL in the schema (V13) but only the WhatsApp launch
+    // path used to set them, so a plain email/SMS campaign created through POST /campaigns failed
+    // on insert. Match the schema defaults here so every creation path produces a valid row.
     @Column(name = "template_lang")
-    private String templateLang;
+    @Builder.Default
+    private String templateLang = "fr";
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "template_params", columnDefinition = "jsonb")
-    private List<String> templateParams;
+    @Builder.Default
+    private List<String> templateParams = new ArrayList<>();
 
     /** Rendered preview of the first send, for display in the CRM timeline. */
     @Column(name = "body_preview", columnDefinition = "text")
     private String bodyPreview;
 
     @Column(name = "followup_enabled", nullable = false)
-    private Boolean followupEnabled;
+    @Builder.Default
+    private Boolean followupEnabled = false;
 
     @Column(name = "followup_delay_days", nullable = false)
-    private Integer followupDelayDays;
+    @Builder.Default
+    private Integer followupDelayDays = 3;
 
     @Column(name = "followup_template_name")
     private String followupTemplateName;

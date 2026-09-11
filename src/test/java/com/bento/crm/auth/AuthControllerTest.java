@@ -42,6 +42,37 @@ class AuthControllerTest extends IntegrationTestBase {
                 .andExpect(jsonPath("$.user.role").value("ADMIN"));
     }
 
+    /**
+     * Two logins for the same user inside one wall-clock second (double-click on "Sign in", a
+     * retry, two tabs). The refresh token must differ per login or the second insert hits the
+     * unique token-hash constraint and the login 409s.
+     */
+    @Test
+    void login_twiceWithinTheSameSecond_bothSucceed() throws Exception {
+        String email = "twice-" + System.nanoTime() + "@example.com";
+        mockMvc.perform(post("/organizations")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name": "Org", "admin_email": "%s", "admin_name": "Admin", "admin_password": "CorrectPassword123!"}
+                                """.formatted(email)))
+                .andExpect(status().isCreated());
+
+        String body = """
+                {"email": "%s", "password": "CorrectPassword123!"}
+                """.formatted(email);
+        String first = mockMvc.perform(post("/auth/login").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        String second = mockMvc.perform(post("/auth/login").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        String firstRefresh = objectMapper.readTree(first).get("refresh_token").asText();
+        String secondRefresh = objectMapper.readTree(second).get("refresh_token").asText();
+        org.junit.jupiter.api.Assertions.assertNotEquals(firstRefresh, secondRefresh,
+                "each login must mint a distinct refresh token");
+    }
+
     @Test
     void login_withWrongPassword_returns401() throws Exception {
         String email = "wrongpass-" + System.nanoTime() + "@example.com";

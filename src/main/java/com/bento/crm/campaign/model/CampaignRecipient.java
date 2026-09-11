@@ -36,6 +36,9 @@ public class CampaignRecipient extends BaseTenantEntity {
 
     @Column(name = "phone_e164")
     private String phoneE164;
+    /** Resolved email address, for an Email-channel campaign. */
+    @Column(name = "email")
+    private String email;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

@@ -6,6 +6,7 @@ import com.bento.crm.common.model.RelatedEntityType;
 import com.bento.crm.common.repository.EntityLinkSpecifications;
 import com.bento.crm.notification.event.AssignmentNotificationFactory;
 import com.bento.crm.task.dto.CreateTaskRequest;
+import com.bento.crm.task.dto.TaskProgress;
 import com.bento.crm.task.model.Task;
 import com.bento.crm.task.repository.TaskRepository;
 import lombok.RequiredArgsConstructor;
@@ -17,8 +18,12 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collection;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -62,6 +67,19 @@ public class TaskService {
         Specification<Task> spec = EntityLinkSpecifications.<Task>inOrganization(orgId)
                 .and(EntityLinkSpecifications.relatedTo(relatedEntityType, relatedEntityId));
         return taskRepository.findAll(spec, pageable);
+    }
+
+    /**
+     * Task progress for each of the given records, keyed by record id. Records without tasks are
+     * absent from the map, so look them up with {@code getOrDefault(id, TaskProgress.none(id))}.
+     */
+    public Map<UUID, TaskProgress> progressFor(RelatedEntityType type, Collection<UUID> ids) {
+        if (ids.isEmpty()) {
+            return Map.of();
+        }
+        UUID orgId = TenantContext.getCurrentOrganizationId();
+        return taskRepository.progressByRelatedEntity(orgId, type, ids, Task.TaskStatus.DONE).stream()
+                .collect(Collectors.toMap(TaskProgress::relatedEntityId, Function.identity()));
     }
 
     @Transactional
