@@ -37,22 +37,34 @@ public class TenantFilterInterceptor extends OncePerRequestFilter {
      */
     private static final List<String> PUBLIC_PATHS = List.of(
             "/auth/login",
+            "/api/v1/auth/login",
             "/auth/refresh",
+            "/api/v1/auth/refresh",
             "/organizations",
+            "/api/v1/organizations",
             // Invitation acceptance carries no JWT and therefore no org claim; the
             // invitation token resolves the tenant instead.
             "/public/invitations",
+            "/api/v1/public/invitations",
             "/public/invitations/accept",
+            "/api/v1/public/invitations/accept",
             "/actuator/health",
+            "/api/v1/actuator/health",
             // The WhatsApp webhook carries no JWT and therefore no org claim; it
             // resolves its own tenant from metadata.phone_number_id instead.
-            "/webhooks/whatsapp"
+            "/webhooks/whatsapp",
+            "/api/v1/webhooks/whatsapp"
     );
 
     private static final List<String> PUBLIC_PREFIXES = List.of(
-            "/actuator/health/",
+            "/actuator",
+            "/api/v1/actuator",
             "/swagger-ui",
-            "/openapi"
+            "/api/v1/swagger-ui",
+            "/openapi",
+            "/api/v1/openapi",
+            "/v3/api-docs",
+            "/api/v1/v3/api-docs"
     );
 
     private final EntityManager entityManager;
@@ -122,6 +134,8 @@ public class TenantFilterInterceptor extends OncePerRequestFilter {
         String contextPath = request.getContextPath();
         if (contextPath != null && !contextPath.isEmpty() && uri.startsWith(contextPath)) {
             uri = uri.substring(contextPath.length());
+        } else if (uri.startsWith("/api/v1")) {
+            uri = uri.substring(7);
         }
         return uri.isEmpty() ? "/" : uri;
     }
